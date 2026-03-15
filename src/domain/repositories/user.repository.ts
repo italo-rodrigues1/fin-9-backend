@@ -5,6 +5,7 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   create(data: { name: string; email: string; passwordHash: string }): Promise<User>;
   update(id: string, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User>;
+  delete(id: string): Promise<void>;
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');

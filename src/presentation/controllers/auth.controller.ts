@@ -1,25 +1,41 @@
-import { Controller, Post, Body, Get, Patch, UseGuards, Inject, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  ConflictException,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Patch,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { USER_REPOSITORY } from '../../domain/repositories';
-import type { UserRepository } from '../../domain/repositories';
-import { CATEGORY_REPOSITORY } from '../../domain/repositories';
-import type { CategoryRepository } from '../../domain/repositories';
-import { JwtAuthGuard, CurrentUser } from '../../infrastructure/auth';
-import { RegisterDto, LoginDto, UpdateProfileDto } from '../dtos';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import type {
+  CategoryRepository,
+  UserRepository,
+} from '../../domain/repositories';
+import {
+  CATEGORY_REPOSITORY,
+  USER_REPOSITORY,
+} from '../../domain/repositories';
+import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
+import { LoginDto, RegisterDto, UpdateProfileDto } from '../dtos';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
-    @Inject(CATEGORY_REPOSITORY) private readonly categoryRepo: CategoryRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categoryRepo: CategoryRepository,
     private readonly jwtService: JwtService,
   ) {}
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    console.log(dto)
     const existing = await this.userRepo.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email already registered');
@@ -45,7 +61,6 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
-    console.log(dto)
     const user = await this.userRepo.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -81,12 +96,31 @@ export class AuthController {
 
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
-  async updateProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @CurrentUser() user: { id: string },
+    @Body() dto: UpdateProfileDto,
+  ) {
     const updated = await this.userRepo.update(user.id, { name: dto.name });
     return {
       id: updated.id,
       name: updated.name,
       email: updated.email,
+    };
+  }
+
+  @Delete('account')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(@CurrentUser() user: { id: string }) {
+    const found = await this.userRepo.findById(user.id);
+    if (!found) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    await this.userRepo.delete(user.id);
+
+    return {
+      message: 'Conta excluida com sucesso',
     };
   }
 }
