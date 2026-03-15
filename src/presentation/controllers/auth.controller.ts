@@ -1,0 +1,92 @@
+import { Controller, Post, Body, Get, Patch, UseGuards, Inject, HttpCode, HttpStatus } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { USER_REPOSITORY } from '../../domain/repositories';
+import type { UserRepository } from '../../domain/repositories';
+import { CATEGORY_REPOSITORY } from '../../domain/repositories';
+import type { CategoryRepository } from '../../domain/repositories';
+import { JwtAuthGuard, CurrentUser } from '../../infrastructure/auth';
+import { RegisterDto, LoginDto, UpdateProfileDto } from '../dtos';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
+    @Inject(CATEGORY_REPOSITORY) private readonly categoryRepo: CategoryRepository,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  @Post('register')
+  async register(@Body() dto: RegisterDto) {
+    console.log(dto)
+    const existing = await this.userRepo.findByEmail(dto.email);
+    if (existing) {
+      throw new ConflictException('Email already registered');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = await this.userRepo.create({
+      name: dto.name,
+      email: dto.email,
+      passwordHash,
+    });
+
+    await this.categoryRepo.createDefaultCategories(user.id);
+
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    return {
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+    };
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() dto: LoginDto) {
+    console.log(dto)
+    const user = await this.userRepo.findByEmail(dto.email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    return {
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+    };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@CurrentUser() user: { id: string }) {
+    const found = await this.userRepo.findById(user.id);
+    if (!found) {
+      throw new UnauthorizedException('User not found');
+    }
+    return {
+      id: found.id,
+      name: found.name,
+      email: found.email,
+      createdAt: found.createdAt,
+    };
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
+    const updated = await this.userRepo.update(user.id, { name: dto.name });
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+    };
+  }
+}

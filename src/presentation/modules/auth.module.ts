@@ -1,0 +1,32 @@
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from '../../infrastructure/auth';
+import { AuthController } from '../controllers';
+import { USER_REPOSITORY } from '../../domain/repositories';
+import { CATEGORY_REPOSITORY } from '../../domain/repositories';
+import { PrismaUserRepository } from '../../infrastructure/repositories';
+import { PrismaCategoryRepository } from '../../infrastructure/repositories';
+
+@Module({
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET')!,
+        signOptions: { expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '7d') as any },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [
+    JwtStrategy,
+    { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
+    { provide: CATEGORY_REPOSITORY, useClass: PrismaCategoryRepository },
+  ],
+  exports: [JwtModule, PassportModule],
+})
+export class AuthModule {}
