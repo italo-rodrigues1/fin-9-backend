@@ -36,7 +36,19 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
+    const domainEmailAccepted = ['gmail.com', 'outlook.com'];
+    const emailValid =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.email) &&
+      domainEmailAccepted.some((domain) => dto.email.endsWith(domain));
+
+    if (!emailValid) {
+      throw new ConflictException(
+        'Email inválido. Por favor, utilize um email válido (ex: @gmail.com, @outlook.com)',
+      );
+    }
+
     const existing = await this.userRepo.findByEmail(dto.email);
+
     if (existing) {
       throw new ConflictException('Email already registered');
     }
