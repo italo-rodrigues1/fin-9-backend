@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  CATEGORY_REPOSITORY,
+  USER_REPOSITORY,
+} from '../../domain/repositories';
 import { JwtStrategy } from '../../infrastructure/auth';
+import {
+  PrismaCategoryRepository,
+  PrismaUserRepository,
+} from '../../infrastructure/repositories';
 import { AuthController } from '../controllers';
-import { USER_REPOSITORY } from '../../domain/repositories';
-import { CATEGORY_REPOSITORY } from '../../domain/repositories';
-import { PrismaUserRepository } from '../../infrastructure/repositories';
-import { PrismaCategoryRepository } from '../../infrastructure/repositories';
 
 @Module({
   imports: [
@@ -17,7 +21,10 @@ import { PrismaCategoryRepository } from '../../infrastructure/repositories';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET')!,
-        signOptions: { expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '7d') as any },
+        signOptions: {
+          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ||
+            '7d') as any,
+        },
       }),
     }),
   ],

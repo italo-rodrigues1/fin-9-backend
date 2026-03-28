@@ -73,6 +73,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
+    console.log('Login attempt for email:', dto.email);
     const user = await this.userRepo.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

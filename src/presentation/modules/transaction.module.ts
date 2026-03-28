@@ -1,8 +1,15 @@
 import { Module } from '@nestjs/common';
-import { TransactionController, DashboardController } from '../controllers';
-import { TRANSACTION_REPOSITORY, CATEGORY_REPOSITORY, ACCOUNT_REPOSITORY } from '../../domain/repositories';
-import { PrismaTransactionRepository, PrismaCategoryRepository } from '../../infrastructure/repositories';
-import { PrismaAccountRepository } from '../../infrastructure/repositories';
+import {
+  ACCOUNT_REPOSITORY,
+  CATEGORY_REPOSITORY,
+  TRANSACTION_REPOSITORY,
+} from '../../domain/repositories';
+import {
+  PrismaAccountRepository,
+  PrismaCategoryRepository,
+  PrismaTransactionRepository,
+} from '../../infrastructure/repositories';
+import { DashboardController, TransactionController } from '../controllers';
 
 @Module({
   controllers: [TransactionController, DashboardController],
