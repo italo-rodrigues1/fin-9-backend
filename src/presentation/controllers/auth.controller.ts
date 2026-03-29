@@ -32,7 +32,7 @@ export class AuthController {
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepo: CategoryRepository,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
@@ -73,7 +73,6 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
-    console.log('Login attempt for email:', dto.email);
     const user = await this.userRepo.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');

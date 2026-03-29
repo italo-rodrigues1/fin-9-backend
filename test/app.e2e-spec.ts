@@ -16,10 +16,15 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/health (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/health')
       .expect(200)
-      .expect('Hello World!');
+      .expect('Cache-Control', 'no-store')
+      .expect((response) => {
+        expect(response.body.status).toBe('ok');
+        expect(typeof response.body.timestamp).toBe('string');
+        expect(new Date(response.body.timestamp).toString()).not.toBe('Invalid Date');
+      });
   });
 });
