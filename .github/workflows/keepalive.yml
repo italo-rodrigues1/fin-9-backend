@@ -1,0 +1,23 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping backend health endpoint
+        env:
+          BACKEND_HEALTH_URL: ${{ secrets.BACKEND_HEALTH_URL }}
+        run: |
+          if [ -z "$BACKEND_HEALTH_URL" ]; then
+            echo "Missing BACKEND_HEALTH_URL secret."
+            exit 1
+          fi
+
+          curl -fsS "$BACKEND_HEALTH_URL" > /dev/null
+          echo "Ping sent to $BACKEND_HEALTH_URL"
