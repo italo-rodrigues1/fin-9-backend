@@ -36,7 +36,7 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    const domainEmailAccepted = ['gmail.com', 'outlook.com'];
+    const domainEmailAccepted = ['gmail.com', 'outlook.com', 'hotmail.com'];
     const emailValid =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.email) &&
       domainEmailAccepted.some((domain) => dto.email.endsWith(domain));
