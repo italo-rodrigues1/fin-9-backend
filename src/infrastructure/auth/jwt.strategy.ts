@@ -11,11 +11,15 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
+    const secret = configService.get<string>('JWT_SECRET');
+    if (!secret || secret.length < 32) {
+      throw new Error('JWT_SECRET must be defined and at least 32 characters long');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET'),
-    } as any);
+      secretOrKey: secret,
+    });
   }
 
   validate(payload: JwtPayload) {

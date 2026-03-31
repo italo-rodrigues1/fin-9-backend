@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Throttle } from '@nestjs/throttler';
 import * as bcrypt from 'bcrypt';
 import type {
   CategoryRepository,
@@ -35,18 +36,8 @@ export class AuthController {
   ) { }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async register(@Body() dto: RegisterDto) {
-    const domainEmailAccepted = ['gmail.com', 'outlook.com', 'hotmail.com'];
-    const emailValid =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dto.email) &&
-      domainEmailAccepted.some((domain) => dto.email.endsWith(domain));
-
-    if (!emailValid) {
-      throw new ConflictException(
-        'Email inválido. Por favor, utilize um email válido (ex: @gmail.com, @outlook.com)',
-      );
-    }
-
     const existing = await this.userRepo.findByEmail(dto.email);
 
     if (existing) {
@@ -71,9 +62,10 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
-    const user = await this.userRepo.findByEmail(dto.email);
+    const user = await this.userRepo.findByEmailWithHash(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }

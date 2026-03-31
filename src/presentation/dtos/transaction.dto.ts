@@ -1,14 +1,16 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { TransactionType } from '../../domain/entities';
 
 export class CreateTransactionDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(100)
   title: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(500)
   description?: string;
 
   @IsNumber()
@@ -29,10 +31,12 @@ export class CreateTransactionDto {
 export class UpdateTransactionDto {
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   title?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(500)
   description?: string;
 
   @IsNumber()
@@ -74,11 +78,11 @@ export class FilterTransactionDto {
   categoryId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(['date', 'amount'])
   orderBy?: 'date' | 'amount';
 
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   orderDir?: 'asc' | 'desc';
 }
 

@@ -1,11 +1,13 @@
-import { IsHexColor, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsHexColor, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
   @IsString()
+  @MaxLength(100)
   name: string;
 
   @IsString()
+  @MaxLength(100)
   institution: string;
 
   @IsNumber()
@@ -25,10 +27,12 @@ export class CreateAccountDto {
 export class UpdateAccountDto {
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   name?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   institution?: string;
 
   @IsOptional()
