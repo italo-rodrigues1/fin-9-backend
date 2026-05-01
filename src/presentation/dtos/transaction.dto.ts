@@ -1,5 +1,16 @@
-import { IsDateString, IsEnum, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { TransactionType } from '../../domain/entities';
 
 export class CreateTransactionDto {
@@ -26,6 +37,9 @@ export class CreateTransactionDto {
 
   @IsUUID()
   categoryId: string;
+
+  @IsUUID()
+  accountId: string;
 }
 
 export class UpdateTransactionDto {
@@ -84,6 +98,10 @@ export class FilterTransactionDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   orderDir?: 'asc' | 'desc';
+
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }
 
 export class MonthlySummaryQueryDto {
@@ -94,4 +112,8 @@ export class MonthlySummaryQueryDto {
   @Type(() => Number)
   @IsNumber()
   year: number;
+
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

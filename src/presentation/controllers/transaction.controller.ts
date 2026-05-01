@@ -1,22 +1,50 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
-import { JwtAuthGuard, CurrentUser } from '../../infrastructure/auth';
-import { TRANSACTION_REPOSITORY } from '../../domain/repositories';
-import type { TransactionRepository } from '../../domain/repositories';
-import { CATEGORY_REPOSITORY } from '../../domain/repositories';
-import type { CategoryRepository } from '../../domain/repositories';
-import { CreateTransactionDto, UpdateTransactionDto, FilterTransactionDto } from '../dtos';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import type {
+  AccountRepository,
+  CategoryRepository,
+  TransactionRepository,
+} from '../../domain/repositories';
+import {
+  ACCOUNT_REPOSITORY,
+  CATEGORY_REPOSITORY,
+  TRANSACTION_REPOSITORY,
+} from '../../domain/repositories';
+import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
+import {
+  CreateTransactionDto,
+  FilterTransactionDto,
+  UpdateTransactionDto,
+} from '../dtos';
 
 @Controller('transactions')
 @UseGuards(JwtAuthGuard)
 export class TransactionController {
   constructor(
-    @Inject(TRANSACTION_REPOSITORY) private readonly txRepo: TransactionRepository,
-    @Inject(CATEGORY_REPOSITORY) private readonly categoryRepo: CategoryRepository,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly txRepo: TransactionRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categoryRepo: CategoryRepository,
+    @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
   ) {}
 
   @Get()
-  async findAll(@CurrentUser() user: { id: string }, @Query() filters: FilterTransactionDto) {
+  async findAll(
+    @CurrentUser() user: { id: string },
+    @Query() filters: FilterTransactionDto,
+  ) {
     return this.txRepo.findAll({ ...filters, userId: user.id });
   }
 
@@ -30,10 +58,20 @@ export class TransactionController {
   }
 
   @Post()
-  async create(@CurrentUser() user: { id: string }, @Body() dto: CreateTransactionDto) {
+  async create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateTransactionDto,
+  ) {
     const category = await this.categoryRepo.findById(dto.categoryId, user.id);
     if (!category) {
       throw new BadRequestException('Category not found');
+    }
+
+    const account = await this.accountRepo.findById(dto.accountId, user.id);
+    if (!account) {
+      throw new BadRequestException(
+        'Account not found or does not belong to the user',
+      );
     }
 
     return this.txRepo.create({
@@ -43,6 +81,7 @@ export class TransactionController {
       type: dto.type,
       date: new Date(dto.date),
       categoryId: dto.categoryId,
+      accountId: dto.accountId,
       userId: user.id,
     });
   }
@@ -59,7 +98,10 @@ export class TransactionController {
     }
 
     if (dto.categoryId) {
-      const category = await this.categoryRepo.findById(dto.categoryId, user.id);
+      const category = await this.categoryRepo.findById(
+        dto.categoryId,
+        user.id,
+      );
       if (!category) {
         throw new BadRequestException('Category not found');
       }

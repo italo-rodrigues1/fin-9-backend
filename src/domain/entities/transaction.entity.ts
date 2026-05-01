@@ -11,6 +11,7 @@ export class Transaction {
   type: TransactionType;
   date: Date;
   categoryId: string;
+  accountId: string;
   userId: string;
   createdAt: Date;
   updatedAt: Date;

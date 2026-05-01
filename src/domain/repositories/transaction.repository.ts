@@ -2,6 +2,7 @@ import { Transaction, TransactionType } from '../entities';
 
 export interface TransactionFilters {
   userId: string;
+  accountId?: string;
   month?: number;
   year?: number;
   type?: TransactionType;
@@ -22,7 +23,13 @@ export interface MonthlySummary {
     color: string;
     icon: string;
   }[];
-  byCategory: { categoryId: string; categoryName: string; categoryColor: string; total: number; type: TransactionType }[];
+  byCategory: {
+    categoryId: string;
+    categoryName: string;
+    categoryColor: string;
+    total: number;
+    type: TransactionType;
+  }[];
 }
 
 export interface TransactionRepository {
@@ -35,11 +42,23 @@ export interface TransactionRepository {
     type: TransactionType;
     date: Date;
     categoryId: string;
+    accountId: string;
     userId: string;
   }): Promise<Transaction>;
-  update(id: string, userId: string, data: Partial<Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<Transaction>;
+  update(
+    id: string,
+    userId: string,
+    data: Partial<
+      Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+    >,
+  ): Promise<Transaction>;
   delete(id: string, userId: string): Promise<void>;
-  getMonthlySummary(userId: string, month: number, year: number): Promise<MonthlySummary>;
+  getMonthlySummary(
+    userId: string,
+    month: number,
+    year: number,
+    accountId?: string,
+  ): Promise<MonthlySummary>;
 }
 
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY');

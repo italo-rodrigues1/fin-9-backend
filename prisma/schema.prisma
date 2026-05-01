@@ -50,6 +50,8 @@ model Transaction {
   date        DateTime        @db.Date
   categoryId  String          @map("category_id")
   category    Category        @relation(fields: [categoryId], references: [id])
+  accountId   String          @map("account_id")
+  account     Account         @relation(fields: [accountId], references: [id])
   userId      String          @map("user_id")
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime        @default(now()) @map("created_at")
@@ -57,20 +59,22 @@ model Transaction {
 
   @@index([userId, date])
   @@index([userId, type])
+  @@index([userId, accountId])
   @@map("transactions")
 }
 
 model Account {
-  id          String   @id @default(uuid())
-  name        String
-  institution String
-  balance     Decimal  @db.Decimal(12, 2)
-  color       String   @default("#7C3AED")
-  icon        String   @default("bank-outline")
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String        @id @default(uuid())
+  name         String
+  institution  String
+  balance      Decimal       @db.Decimal(12, 2)
+  color        String        @default("#7C3AED")
+  icon         String        @default("bank-outline")
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   @@index([userId, createdAt])
   @@map("accounts")

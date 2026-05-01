@@ -1,14 +1,21 @@
-import { Controller, Get, Query, UseGuards, Inject } from '@nestjs/common';
-import { JwtAuthGuard, CurrentUser } from '../../infrastructure/auth';
-import { ACCOUNT_REPOSITORY, TRANSACTION_REPOSITORY } from '../../domain/repositories';
-import type { AccountRepository, TransactionRepository } from '../../domain/repositories';
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import type {
+  AccountRepository,
+  TransactionRepository,
+} from '../../domain/repositories';
+import {
+  ACCOUNT_REPOSITORY,
+  TRANSACTION_REPOSITORY,
+} from '../../domain/repositories';
+import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
 import { MonthlySummaryQueryDto } from '../dtos';
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(
-    @Inject(TRANSACTION_REPOSITORY) private readonly txRepo: TransactionRepository,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly txRepo: TransactionRepository,
     @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
   ) {}
 
@@ -18,7 +25,12 @@ export class DashboardController {
     @Query() query: MonthlySummaryQueryDto,
   ) {
     const [summary, accounts] = await Promise.all([
-      this.txRepo.getMonthlySummary(user.id, query.month, query.year),
+      this.txRepo.getMonthlySummary(
+        user.id,
+        query.month,
+        query.year,
+        query.accountId,
+      ),
       this.accountRepo.findAll(user.id),
     ]);
 

@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
-import { TransactionRepository, TransactionFilters, MonthlySummary } from '../../domain/repositories';
 import { Transaction, TransactionType } from '../../domain/entities';
+import {
+  MonthlySummary,
+  TransactionFilters,
+  TransactionRepository,
+} from '../../domain/repositories';
+import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class PrismaTransactionRepository implements TransactionRepository {
@@ -13,12 +17,20 @@ export class PrismaTransactionRepository implements TransactionRepository {
       where: { id, userId },
     });
     if (!tx) return null;
-    return new Transaction({ ...tx, description: tx.description ?? undefined, type: tx.type as TransactionType, amount: Number(tx.amount) });
+    return new Transaction({
+      ...tx,
+      description: tx.description ?? undefined,
+      type: tx.type as TransactionType,
+      amount: Number(tx.amount),
+    });
   }
 
   async findAll(filters: TransactionFilters): Promise<Transaction[]> {
     const where: Prisma.TransactionWhereInput = { userId: filters.userId };
 
+    if (filters.accountId) {
+      where.accountId = filters.accountId;
+    }
     if (filters.type) {
       where.type = filters.type;
     }
@@ -49,7 +61,13 @@ export class PrismaTransactionRepository implements TransactionRepository {
     });
 
     return transactions.map(
-      (tx) => new Transaction({ ...tx, description: tx.description ?? undefined, type: tx.type as TransactionType, amount: Number(tx.amount) }),
+      (tx) =>
+        new Transaction({
+          ...tx,
+          description: tx.description ?? undefined,
+          type: tx.type as TransactionType,
+          amount: Number(tx.amount),
+        }),
     );
   }
 
@@ -60,6 +78,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
     type: TransactionType;
     date: Date;
     categoryId: string;
+    accountId: string;
     userId: string;
   }): Promise<Transaction> {
     const tx = await this.prisma.transaction.create({
@@ -69,18 +88,27 @@ export class PrismaTransactionRepository implements TransactionRepository {
       },
       include: { category: true },
     });
-    return new Transaction({ ...tx, description: tx.description ?? undefined, type: tx.type as TransactionType, amount: Number(tx.amount) });
+    return new Transaction({
+      ...tx,
+      description: tx.description ?? undefined,
+      type: tx.type as TransactionType,
+      amount: Number(tx.amount),
+    });
   }
 
   async update(
     id: string,
     userId: string,
-    data: Partial<Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>,
+    data: Partial<
+      Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+    >,
   ): Promise<Transaction> {
     const updateData: Prisma.TransactionUpdateInput = {};
     if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.amount !== undefined) updateData.amount = new Prisma.Decimal(data.amount);
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.amount !== undefined)
+      updateData.amount = new Prisma.Decimal(data.amount);
     if (data.type !== undefined) updateData.type = data.type;
     if (data.date !== undefined) updateData.date = data.date;
     if (data.categoryId !== undefined) {
@@ -92,14 +120,24 @@ export class PrismaTransactionRepository implements TransactionRepository {
       data: updateData,
       include: { category: true },
     });
-    return new Transaction({ ...tx, description: tx.description ?? undefined, type: tx.type as TransactionType, amount: Number(tx.amount) });
+    return new Transaction({
+      ...tx,
+      description: tx.description ?? undefined,
+      type: tx.type as TransactionType,
+      amount: Number(tx.amount),
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
     await this.prisma.transaction.delete({ where: { id, userId } });
   }
 
-  async getMonthlySummary(userId: string, month: number, year: number): Promise<MonthlySummary> {
+  async getMonthlySummary(
+    userId: string,
+    month: number,
+    year: number,
+    accountId?: string,
+  ): Promise<MonthlySummary> {
     const start = new Date(year, month - 1, 1);
     const end = new Date(year, month, 0);
 
@@ -107,13 +145,23 @@ export class PrismaTransactionRepository implements TransactionRepository {
       where: {
         userId,
         date: { gte: start, lte: end },
+        ...(accountId && { accountId }),
       },
       include: { category: true },
     });
 
     let totalIncome = 0;
     let totalExpense = 0;
-    const categoryMap = new Map<string, { categoryId: string; categoryName: string; categoryColor: string; total: number; type: TransactionType }>();
+    const categoryMap = new Map<
+      string,
+      {
+        categoryId: string;
+        categoryName: string;
+        categoryColor: string;
+        total: number;
+        type: TransactionType;
+      }
+    >();
 
     for (const tx of transactions) {
       const amount = Number(tx.amount);
