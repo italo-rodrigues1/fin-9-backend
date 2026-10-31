@@ -8,7 +8,12 @@ import {
 } from '../../domain/repositories';
 import { PrismaService } from '../database/prisma.service';
 
-function getBalanceDelta(type: TransactionType, amount: number): number {
+function getBalanceDelta(
+  type: TransactionType,
+  amount: number,
+  status = 'CONFIRMED',
+): number {
+  if (status === 'PLANNED') return 0;
   return type === TransactionType.INCOME ? amount : -amount;
 }
 
@@ -51,6 +56,9 @@ export class PrismaTransactionRepository implements TransactionRepository {
   async findAll(filters: TransactionFilters): Promise<Transaction[]> {
     const where: Prisma.TransactionWhereInput = { userId: filters.userId };
 
+    if (filters.search)
+      where.title = { contains: filters.search.trim(), mode: 'insensitive' };
+    if (filters.status) where.status = filters.status;
     if (filters.accountId) {
       where.accountId = filters.accountId;
     }
@@ -84,7 +92,9 @@ export class PrismaTransactionRepository implements TransactionRepository {
 
     const transactions = await this.prisma.transaction.findMany({
       where,
-      orderBy,
+      orderBy: [orderBy, { id: 'desc' }],
+      ...(filters.skip !== undefined ? { skip: filters.skip } : {}),
+      ...(filters.take !== undefined ? { take: filters.take } : {}),
       include: { category: true },
     });
 
@@ -100,6 +110,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async create(data: {
+    status?: 'CONFIRMED' | 'PLANNED';
     title: string;
     description?: string;
     amount: number;
@@ -119,11 +130,11 @@ export class PrismaTransactionRepository implements TransactionRepository {
       });
 
       await prisma.account.update({
-        where: { id: data.accountId, userId: data.userId },
+        where: { id: data.accountId, userId: data.userId, isArchived: false },
         data: {
           balance: {
             increment: new Prisma.Decimal(
-              getBalanceDelta(data.type, data.amount),
+              getBalanceDelta(data.type, data.amount, data.status),
             ),
           },
         },
@@ -148,6 +159,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
     >,
   ): Promise<Transaction> {
     const updateData: Prisma.TransactionUpdateInput = {};
+    if (data.status !== undefined) updateData.status = data.status;
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined)
       updateData.description = data.description;
@@ -179,6 +191,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
               -getBalanceDelta(
                 existing.type as TransactionType,
                 previousAmount,
+                existing.status,
               ),
             ),
           },
@@ -196,7 +209,11 @@ export class PrismaTransactionRepository implements TransactionRepository {
         data: {
           balance: {
             increment: new Prisma.Decimal(
-              getBalanceDelta(nextType, nextAmount),
+              getBalanceDelta(
+                nextType,
+                nextAmount,
+                data.status ?? existing.status,
+              ),
             ),
           },
         },
@@ -228,6 +245,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
               -getBalanceDelta(
                 existing.type as TransactionType,
                 Number(existing.amount),
+                existing.status,
               ),
             ),
           },
@@ -249,6 +267,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       where: {
         userId,
         date: { gte: start, lt: end },
+        status: 'CONFIRMED',
         ...(accountId && { accountId }),
       },
       include: { category: true },

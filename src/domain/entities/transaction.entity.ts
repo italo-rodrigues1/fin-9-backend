@@ -4,6 +4,9 @@ export enum TransactionType {
 }
 
 export class Transaction {
+  status: 'CONFIRMED' | 'PLANNED' = 'CONFIRMED';
+  recurrenceId?: string | null;
+  occurrenceDate?: Date | null;
   id: string;
   title: string;
   description?: string;

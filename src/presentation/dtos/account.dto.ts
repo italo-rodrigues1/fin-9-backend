@@ -1,8 +1,19 @@
-import { IsHexColor, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsHexColor,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   name: string;
 
@@ -26,6 +37,9 @@ export class CreateAccountDto {
 }
 
 export class UpdateAccountDto {
+  @IsOptional()
+  @IsBoolean()
+  isArchived?: boolean;
   @IsOptional()
   @IsString()
   @MaxLength(100)

@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEnum,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -16,6 +17,9 @@ import {
 import { TransactionType } from '../../domain/entities';
 
 export class CreateTransactionDto {
+  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+    | 'CONFIRMED'
+    | 'PLANNED';
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -49,6 +53,9 @@ export class CreateTransactionDto {
 }
 
 export class UpdateTransactionDto {
+  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+    | 'CONFIRMED'
+    | 'PLANNED';
   @IsString()
   @IsOptional()
   @MaxLength(100)
@@ -87,6 +94,12 @@ export class UpdateTransactionDto {
 }
 
 export class FilterTransactionDto {
+  @IsOptional() @IsString() @MaxLength(100) search?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) skip?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) take?: number;
+  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+    | 'CONFIRMED'
+    | 'PLANNED';
   @IsOptional()
   @Type(() => Number)
   @IsNumber()

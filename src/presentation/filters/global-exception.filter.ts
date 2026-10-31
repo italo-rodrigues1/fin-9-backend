@@ -85,6 +85,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         statusCode = HttpStatus.CONFLICT;
         message = 'Resource already exists';
         error = 'Conflict';
+      } else if (exception.code === 'P2003') {
+        statusCode = HttpStatus.CONFLICT;
+        message =
+          'O registro possui histórico ou vínculos ativos. Arquive a conta ou encerre os vínculos antes de remover.';
+        error = 'Conflict';
       } else if (exception.code === 'P2025') {
         statusCode = HttpStatus.NOT_FOUND;
         message = 'Resource not found';

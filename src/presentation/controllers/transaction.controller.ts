@@ -78,13 +78,14 @@ export class TransactionController {
     }
 
     const account = await this.accountRepo.findById(dto.accountId, user.id);
-    if (!account) {
+    if (!account || account.isArchived) {
       throw new BadRequestException(
         'Account not found or does not belong to the user',
       );
     }
 
     return this.txRepo.create({
+      status: dto.status,
       title: dto.title,
       description: dto.description,
       amount: dto.amount,
@@ -127,6 +128,7 @@ export class TransactionController {
     }
 
     const updateData: Record<string, unknown> = {};
+    if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.amount !== undefined) updateData.amount = dto.amount;

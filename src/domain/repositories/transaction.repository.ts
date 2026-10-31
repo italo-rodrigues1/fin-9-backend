@@ -3,6 +3,10 @@ import { Transaction, TransactionType } from '../entities';
 export interface TransactionFilters {
   userId: string;
   accountId?: string;
+  search?: string;
+  skip?: number;
+  take?: number;
+  status?: 'CONFIRMED' | 'PLANNED';
   month?: number;
   year?: number;
   startDate?: string;
@@ -38,6 +42,7 @@ export interface TransactionRepository {
   findById(id: string, userId: string): Promise<Transaction | null>;
   findAll(filters: TransactionFilters): Promise<Transaction[]>;
   create(data: {
+    status?: 'CONFIRMED' | 'PLANNED';
     title: string;
     description?: string;
     amount: number;

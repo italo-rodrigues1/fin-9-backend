@@ -1,4 +1,5 @@
 export class Account {
+  isArchived: boolean = false;
   id: string;
   name: string;
   institution: string;

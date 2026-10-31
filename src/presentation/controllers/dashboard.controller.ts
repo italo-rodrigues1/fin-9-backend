@@ -1,49 +1,15 @@
-import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
-import type {
-  AccountRepository,
-  TransactionRepository,
-} from '../../domain/repositories';
-import {
-  ACCOUNT_REPOSITORY,
-  TRANSACTION_REPOSITORY,
-} from '../../domain/repositories';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
-import { MonthlySummaryQueryDto } from '../dtos';
-
+import { PlanningService } from '../../application/planning.service';
+import { PeriodDto } from '../dtos/planning.dto';
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
-  constructor(
-    @Inject(TRANSACTION_REPOSITORY)
-    private readonly txRepo: TransactionRepository,
-    @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
-  ) {}
-
-  @Get('summary')
-  async getMonthlySummary(
+  constructor(private readonly planning: PlanningService) {}
+  @Get('summary') getMonthlySummary(
     @CurrentUser() user: { id: string },
-    @Query() query: MonthlySummaryQueryDto,
+    @Query() period: PeriodDto,
   ) {
-    const [summary, accounts] = await Promise.all([
-      this.txRepo.getMonthlySummary(
-        user.id,
-        query.month,
-        query.year,
-        query.accountId,
-      ),
-      this.accountRepo.findAll(user.id),
-    ]);
-
-    return {
-      ...summary,
-      accounts: accounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-        institution: account.institution,
-        balance: account.balance,
-        color: account.color,
-        icon: account.icon,
-      })),
-    };
+    return this.planning.report(user.id, period);
   }
 }

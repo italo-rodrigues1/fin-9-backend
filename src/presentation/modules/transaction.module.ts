@@ -1,3 +1,4 @@
+import { PlanningModule } from './planning.module';
 import { Module } from '@nestjs/common';
 import {
   ACCOUNT_REPOSITORY,
@@ -12,6 +13,7 @@ import {
 import { DashboardController, TransactionController } from '../controllers';
 
 @Module({
+  imports: [PlanningModule],
   controllers: [TransactionController, DashboardController],
   providers: [
     { provide: ACCOUNT_REPOSITORY, useClass: PrismaAccountRepository },

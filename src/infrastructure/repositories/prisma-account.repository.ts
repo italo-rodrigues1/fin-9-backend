@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Account } from '../../domain/entities';
 import { AccountRepository } from '../../domain/repositories';
@@ -13,7 +13,6 @@ export class PrismaAccountRepository implements AccountRepository {
       where: { userId },
       orderBy: [{ createdAt: 'asc' }],
     });
-    console.log(`Found ${accounts.length} accounts for user ${userId}`);
     return accounts.map(
       (account) =>
         new Account({
@@ -63,6 +62,7 @@ export class PrismaAccountRepository implements AccountRepository {
     data: Partial<Omit<Account, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>,
   ): Promise<Account> {
     const updateData: Prisma.AccountUpdateInput = {};
+    if (data.isArchived !== undefined) updateData.isArchived = data.isArchived;
 
     if (data.name !== undefined) updateData.name = data.name;
     if (data.institution !== undefined)
@@ -84,6 +84,14 @@ export class PrismaAccountRepository implements AccountRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
+    if (
+      await this.prisma.transfer.count({
+        where: { userId, OR: [{ fromAccountId: id }, { toAccountId: id }] },
+      })
+    )
+      throw new ConflictException(
+        'Arquive a conta para preservar seu histórico de transferências.',
+      );
     await this.prisma.account.delete({
       where: { id, userId },
     });

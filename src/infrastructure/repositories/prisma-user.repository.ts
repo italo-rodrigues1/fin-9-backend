@@ -36,7 +36,11 @@ export class PrismaUserRepository implements UserRepository {
     return user ? new User(user) : null;
   }
 
-  async create(data: { name: string; email: string; passwordHash: string }): Promise<User> {
+  async create(data: {
+    name: string;
+    email: string;
+    passwordHash: string;
+  }): Promise<User> {
     const user = await this.prisma.user.create({
       data,
       select: USER_SELECT,
@@ -44,7 +48,10 @@ export class PrismaUserRepository implements UserRepository {
     return new User(user);
   }
 
-  async update(id: string, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User> {
+  async update(
+    id: string,
+    data: Partial<Pick<User, 'name' | 'email'>>,
+  ): Promise<User> {
     const user = await this.prisma.user.update({
       where: { id },
       data,
@@ -54,6 +61,14 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.transaction.deleteMany({ where: { userId: id } });
+      await tx.transfer.deleteMany({ where: { userId: id } });
+      await tx.budget.deleteMany({ where: { userId: id } });
+      await tx.recurrence.deleteMany({ where: { userId: id } });
+      await tx.account.deleteMany({ where: { userId: id } });
+      await tx.category.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+    });
   }
 }
