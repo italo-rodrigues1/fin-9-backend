@@ -65,6 +65,13 @@ export class PrismaUserRepository implements UserRepository {
       await tx.goalContribution.deleteMany({ where: { userId: id } });
       await tx.goal.deleteMany({ where: { userId: id } });
       await tx.transaction.deleteMany({ where: { userId: id } });
+      await tx.cardPayment.deleteMany({ where: { userId: id } });
+      await tx.cardInstallment.deleteMany({
+        where: { purchase: { userId: id } },
+      });
+      await tx.cardPurchase.deleteMany({ where: { userId: id } });
+      await tx.cardInvoice.deleteMany({ where: { userId: id } });
+      await tx.creditCard.deleteMany({ where: { userId: id } });
       await tx.transfer.deleteMany({ where: { userId: id } });
       await tx.budget.deleteMany({ where: { userId: id } });
       await tx.recurrence.deleteMany({ where: { userId: id } });

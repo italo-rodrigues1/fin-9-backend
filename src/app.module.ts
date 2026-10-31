@@ -1,3 +1,4 @@
+import { CardsModule } from './presentation/modules/cards.module';
 import { GoalsModule } from './presentation/modules/goals.module';
 import { API_RATE_LIMIT } from './rate-limit.config';
 import { Module } from '@nestjs/common';
@@ -19,6 +20,7 @@ import {
     ThrottlerModule.forRoot([API_RATE_LIMIT]),
     DatabaseModule,
     GoalsModule,
+    CardsModule,
     HealthModule,
     AuthModule,
     AccountModule,

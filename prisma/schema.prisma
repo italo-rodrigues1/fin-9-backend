@@ -23,6 +23,10 @@ enum RecurrenceInterval {
 }
 
 model User {
+  creditCards       CreditCard[]
+  cardPurchases     CardPurchase[]
+  cardInvoices      CardInvoice[]
+  cardPayments      CardPayment[]
   goals             Goal[]
   goalContributions GoalContribution[]
   id                String             @id @default(uuid())
@@ -42,16 +46,17 @@ model User {
 }
 
 model Category {
-  id           String        @id @default(uuid())
-  name         String
-  color        String        @default("#6366f1")
-  icon         String        @default("tag")
-  isDefault    Boolean       @default(false) @map("is_default")
-  userId       String        @map("user_id")
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  transactions Transaction[]
+  cardPurchases CardPurchase[]
+  id            String         @id @default(uuid())
+  name          String
+  color         String         @default("#6366f1")
+  icon          String         @default("tag")
+  isDefault     Boolean        @default(false) @map("is_default")
+  userId        String         @map("user_id")
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  transactions  Transaction[]
 
   recurrences Recurrence[]
   budgets     Budget[]
@@ -61,6 +66,8 @@ model Category {
 }
 
 model Transaction {
+  cardPaymentId  String?           @map("card_payment_id")
+  cardPayment    CardPayment?      @relation(fields: [cardPaymentId], references: [id])
   id             String            @id @default(uuid())
   title          String
   description    String?
@@ -80,6 +87,7 @@ model Transaction {
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
+  @@index([cardPaymentId])
   @@unique([recurrenceId, occurrenceDate])
   @@index([userId, status, date])
   @@index([userId, date])
@@ -89,6 +97,7 @@ model Transaction {
 }
 
 model Account {
+  cardPayments      CardPayment[]
   goalContributions GoalContribution[]
   isArchived        Boolean            @default(false) @map("is_archived")
   outgoingTransfers Transfer[]         @relation("TransferOrigin")
@@ -202,4 +211,97 @@ model GoalContribution {
   @@index([userId, accountId])
   @@index([goalId, date, id])
   @@map("goal_contributions")
+}
+
+model CreditCard {
+  id          String         @id @default(uuid())
+  userId      String         @map("user_id")
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  creditLimit Decimal        @map("credit_limit") @db.Decimal(12, 2)
+  closingDay  Int            @map("closing_day")
+  dueDay      Int            @map("due_day")
+  isArchived  Boolean        @default(false) @map("is_archived")
+  purchases   CardPurchase[]
+  invoices    CardInvoice[]
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@map("credit_cards")
+}
+
+model CardPurchase {
+  id               String            @id @default(uuid())
+  userId           String            @map("user_id")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId           String            @map("card_id")
+  card             CreditCard        @relation(fields: [cardId], references: [id])
+  categoryId       String            @map("category_id")
+  category         Category          @relation(fields: [categoryId], references: [id])
+  title            String
+  amount           Decimal           @db.Decimal(12, 2)
+  date             DateTime          @db.Date
+  installmentCount Int               @map("installment_count")
+  requestId        String?           @map("request_id")
+  installments     CardInstallment[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@unique([userId, requestId])
+  @@index([cardId, date, id])
+  @@map("card_purchases")
+}
+
+model CardInvoice {
+  id           String            @id @default(uuid())
+  userId       String            @map("user_id")
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId       String            @map("card_id")
+  card         CreditCard        @relation(fields: [cardId], references: [id])
+  year         Int
+  month        Int
+  closingDate  DateTime          @map("closing_date") @db.Date
+  dueDate      DateTime          @map("due_date") @db.Date
+  installments CardInstallment[]
+  payments     CardPayment[]
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  @@unique([cardId, year, month])
+  @@index([userId, dueDate])
+  @@map("card_invoices")
+}
+
+model CardInstallment {
+  id         String       @id @default(uuid())
+  purchaseId String       @map("purchase_id")
+  purchase   CardPurchase @relation(fields: [purchaseId], references: [id])
+  invoiceId  String       @map("invoice_id")
+  invoice    CardInvoice  @relation(fields: [invoiceId], references: [id])
+  number     Int
+  amount     Decimal      @db.Decimal(12, 2)
+
+  @@unique([purchaseId, number])
+  @@index([invoiceId])
+  @@map("card_installments")
+}
+
+model CardPayment {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceId    String        @map("invoice_id")
+  invoice      CardInvoice   @relation(fields: [invoiceId], references: [id])
+  accountId    String        @map("account_id")
+  account      Account       @relation(fields: [accountId], references: [id])
+  amount       Decimal       @db.Decimal(12, 2)
+  date         DateTime      @db.Date
+  requestId    String        @map("request_id")
+  reversedAt   DateTime?     @map("reversed_at")
+  transactions Transaction[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@unique([userId, requestId])
+  @@index([invoiceId, reversedAt])
+  @@map("card_payments")
 }

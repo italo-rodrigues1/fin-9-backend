@@ -81,12 +81,26 @@ export class PlanningService {
       },
       _sum: { amount: true },
     });
+    const cardPlanned = period.accountId
+      ? new Prisma.Decimal(0)
+      : (
+          await this.db.cardInstallment.aggregate({
+            where: {
+              invoice: {
+                userId,
+                dueDate: { gte: start, lt: end },
+                payments: { none: { reversedAt: null } },
+              },
+            },
+            _sum: { amount: true },
+          })
+        )._sum.amount || new Prisma.Decimal(0);
     const plannedIncome =
         planned.find((row) => row.type === 'INCOME')?._sum.amount ||
         new Prisma.Decimal(0),
-      plannedExpense =
-        planned.find((row) => row.type === 'EXPENSE')?._sum.amount ||
-        new Prisma.Decimal(0);
+      plannedExpense = new Prisma.Decimal(
+        planned.find((row) => row.type === 'EXPENSE')?._sum.amount || 0,
+      ).plus(cardPlanned);
     const currentBalance = accounts.reduce(
       (total, a) => total.plus(a.balance),
       new Prisma.Decimal(0),
@@ -105,6 +119,7 @@ export class PlanningService {
       },
       plannedIncome: plannedIncome.toNumber(),
       plannedExpense: plannedExpense.toNumber(),
+      plannedCardExpense: cardPlanned.toNumber(),
       projectedBalance: currentBalance
         .plus(plannedIncome)
         .minus(plannedExpense)

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { serializable } from '../../application/finance-rules';
 import { Prisma } from '@prisma/client';
 import { Transaction, TransactionType } from '../../domain/entities';
 import {
@@ -24,25 +25,21 @@ export class PrismaTransactionRepository implements TransactionRepository {
   private async runTransaction<T>(
     operation: (client: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await this.prisma.$transaction(operation, {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        });
-      } catch (error) {
-        if (
-          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-          error.code !== 'P2034' ||
-          attempt >= 2
-        )
-          throw error;
-      }
-    }
+    return serializable<T>(this.prisma, operation);
   }
 
   async findById(id: string, userId: string): Promise<Transaction | null> {
     const tx = await this.prisma.transaction.findFirst({
       where: { id, userId },
+      include: {
+        cardPayment: {
+          select: {
+            id: true,
+            invoiceId: true,
+            invoice: { select: { cardId: true } },
+          },
+        },
+      },
     });
     if (!tx) return null;
     return new Transaction({
@@ -95,7 +92,16 @@ export class PrismaTransactionRepository implements TransactionRepository {
       orderBy: [orderBy, { id: 'desc' }],
       ...(filters.skip !== undefined ? { skip: filters.skip } : {}),
       ...(filters.take !== undefined ? { take: filters.take } : {}),
-      include: { category: true },
+      include: {
+        category: true,
+        cardPayment: {
+          select: {
+            id: true,
+            invoiceId: true,
+            invoice: { select: { cardId: true } },
+          },
+        },
+      },
     });
 
     return transactions.map(
@@ -178,6 +184,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
       const existing = await prisma.transaction.findFirstOrThrow({
         where: { id, userId },
       });
+      if (existing.cardPaymentId)
+        throw new ConflictException(
+          'Gerencie este lançamento pela fatura do cartão.',
+        );
       const previousAmount = Number(existing.amount);
       const nextAmount = data.amount ?? previousAmount;
       const nextType = data.type ?? (existing.type as TransactionType);
@@ -236,6 +246,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
         where: { id, userId },
       });
 
+      if (existing.cardPaymentId)
+        throw new ConflictException(
+          'Estorne o pagamento pela fatura do cartão.',
+        );
       await prisma.transaction.delete({ where: { id, userId } });
       await prisma.account.update({
         where: { id: existing.accountId, userId },

@@ -4,6 +4,12 @@ export enum TransactionType {
 }
 
 export class Transaction {
+  cardPaymentId?: string | null;
+  cardPayment?: {
+    id: string;
+    invoiceId: string;
+    invoice: { cardId: string };
+  } | null;
   status: 'CONFIRMED' | 'PLANNED' = 'CONFIRMED';
   recurrenceId?: string | null;
   occurrenceDate?: Date | null;

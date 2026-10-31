@@ -20,6 +20,23 @@ export function budgetProgress(limit: Prisma.Decimal, used: Prisma.Decimal) {
     alert: percentage >= 100 ? 'EXCEEDED' : percentage >= 80 ? 'WARNING' : 'OK',
   };
 }
+export function isSerializationConflict(error: unknown): boolean {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2034'
+  )
+    return true;
+  if (!error || typeof error !== 'object' || !('cause' in error)) return false;
+  const cause = error.cause;
+  return Boolean(
+    cause &&
+    typeof cause === 'object' &&
+    'kind' in cause &&
+    cause.kind === 'TransactionWriteConflict' &&
+    'originalCode' in cause &&
+    ['40001', '40P01'].includes(String(cause.originalCode)),
+  );
+}
 export async function serializable<T>(
   prisma: {
     $transaction: (
@@ -35,11 +52,6 @@ export async function serializable<T>(
         isolationLevel: 'Serializable',
       });
     } catch (error) {
-      if (
-        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-        error.code !== 'P2034' ||
-        attempt >= 2
-      )
-        throw error;
+      if (!isSerializationConflict(error) || attempt >= 2) throw error;
     }
 }

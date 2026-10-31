@@ -85,6 +85,12 @@ export class PrismaAccountRepository implements AccountRepository {
 
   async delete(id: string, userId: string): Promise<void> {
     if (
+      await this.prisma.cardPayment.count({ where: { userId, accountId: id } })
+    )
+      throw new ConflictException(
+        'Arquive a conta para preservar o histórico de pagamentos de faturas.',
+      );
+    if (
       await this.prisma.goalContribution.count({
         where: { userId, accountId: id },
       })
