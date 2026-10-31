@@ -1,3 +1,4 @@
+import { STATUS_CODES } from 'node:http';
 import {
   ArgumentsHost,
   Catch,
@@ -56,7 +57,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
-    const { method, url, params, query, body: requestBody } = request;
+    const { method, url, params, query } = request;
+    const requestBody: unknown = request.body;
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -64,6 +66,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
+      error = STATUS_CODES[statusCode] || 'HTTP Error';
       const exceptionResponse = exception.getResponse();
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;

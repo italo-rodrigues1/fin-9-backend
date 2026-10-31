@@ -1,3 +1,4 @@
+import { API_RATE_LIMIT } from './rate-limit.config';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
@@ -14,7 +15,7 @@ import {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 10 }]),
+    ThrottlerModule.forRoot([API_RATE_LIMIT]),
     DatabaseModule,
     HealthModule,
     AuthModule,
