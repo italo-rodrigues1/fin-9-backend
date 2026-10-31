@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { AccountRepository } from '../../domain/repositories';
 import { Account } from '../../domain/entities';
+import { AccountRepository } from '../../domain/repositories';
 import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class PrismaAccountRepository implements AccountRepository {
       where: { userId },
       orderBy: [{ createdAt: 'asc' }],
     });
-
+    console.log(`Found ${accounts.length} accounts for user ${userId}`);
     return accounts.map(
       (account) =>
         new Account({
@@ -65,8 +65,10 @@ export class PrismaAccountRepository implements AccountRepository {
     const updateData: Prisma.AccountUpdateInput = {};
 
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.institution !== undefined) updateData.institution = data.institution;
-    if (data.balance !== undefined) updateData.balance = new Prisma.Decimal(data.balance);
+    if (data.institution !== undefined)
+      updateData.institution = data.institution;
+    if (data.balance !== undefined)
+      updateData.balance = new Prisma.Decimal(data.balance);
     if (data.color !== undefined) updateData.color = data.color;
     if (data.icon !== undefined) updateData.icon = data.icon;
 

@@ -8,7 +8,9 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Matches,
   Min,
 } from 'class-validator';
 import { TransactionType } from '../../domain/entities';
@@ -24,8 +26,12 @@ export class CreateTransactionDto {
   @MaxLength(500)
   description?: string;
 
-  @IsNumber()
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Valor inválido (máximo 2 casas decimais)' },
+  )
   @Min(0.01)
+  @Max(999_999_999.99, { message: 'Valor máximo excedido' })
   @Type(() => Number)
   amount: number;
 
@@ -53,8 +59,12 @@ export class UpdateTransactionDto {
   @MaxLength(500)
   description?: string;
 
-  @IsNumber()
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Valor inválido (máximo 2 casas decimais)' },
+  )
   @Min(0.01)
+  @Max(999_999_999.99, { message: 'Valor máximo excedido' })
   @IsOptional()
   @Type(() => Number)
   amount?: number;
@@ -70,6 +80,10 @@ export class UpdateTransactionDto {
   @IsUUID()
   @IsOptional()
   categoryId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  accountId?: string;
 }
 
 export class FilterTransactionDto {
@@ -82,6 +96,20 @@ export class FilterTransactionDto {
   @Type(() => Number)
   @IsNumber()
   year?: number;
+
+  @IsOptional()
+  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'startDate must use the YYYY-MM-DD format',
+  })
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'endDate must use the YYYY-MM-DD format',
+  })
+  endDate?: string;
 
   @IsOptional()
   @IsEnum(TransactionType)

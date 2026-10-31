@@ -1,4 +1,4 @@
-import { IsHexColor, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsHexColor, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
@@ -10,8 +10,9 @@ export class CreateAccountDto {
   @MaxLength(100)
   institution: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @Max(999_999_999.99, { message: 'Saldo máximo excedido' })
   @Type(() => Number)
   balance: number;
 
@@ -36,8 +37,9 @@ export class UpdateAccountDto {
   institution?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @Max(999_999_999.99, { message: 'Saldo máximo excedido' })
   @Type(() => Number)
   balance?: number;
 

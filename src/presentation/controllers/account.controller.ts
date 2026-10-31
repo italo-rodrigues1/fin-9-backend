@@ -1,6 +1,24 @@
-import { Body, Controller, Delete, Get, Inject, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ACCOUNT_REPOSITORY } from '../../domain/repositories';
-import type { AccountRepository } from '../../domain/repositories';
+import {
+  Body,
+  ConflictException,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import type {
+  AccountRepository,
+  TransactionRepository,
+} from '../../domain/repositories';
+import {
+  ACCOUNT_REPOSITORY,
+  TRANSACTION_REPOSITORY,
+} from '../../domain/repositories';
 import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
 import { CreateAccountDto, UpdateAccountDto } from '../dtos';
 
@@ -9,6 +27,8 @@ import { CreateAccountDto, UpdateAccountDto } from '../dtos';
 export class AccountController {
   constructor(
     @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly transactionRepo: TransactionRepository,
   ) {}
 
   @Get()
@@ -17,7 +37,10 @@ export class AccountController {
   }
 
   @Post()
-  async create(@CurrentUser() user: { id: string }, @Body() dto: CreateAccountDto) {
+  async create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateAccountDto,
+  ) {
     return this.accountRepo.create({
       name: dto.name,
       institution: dto.institution,
@@ -47,6 +70,16 @@ export class AccountController {
     const existing = await this.accountRepo.findById(id, user.id);
     if (!existing) {
       throw new NotFoundException('Account not found');
+    }
+
+    const transactions = await this.transactionRepo.findAll({
+      userId: user.id,
+      accountId: id,
+    });
+    if (transactions.length > 0) {
+      throw new ConflictException(
+        'Exclua ou mova as transações desta conta antes de removê-la',
+      );
     }
 
     await this.accountRepo.delete(id, user.id);

@@ -8,6 +8,10 @@ import {
 } from '../../domain/repositories';
 import { PrismaService } from '../database/prisma.service';
 
+function getBalanceDelta(type: TransactionType, amount: number): number {
+  return type === TransactionType.INCOME ? amount : -amount;
+}
+
 @Injectable()
 export class PrismaTransactionRepository implements TransactionRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -37,7 +41,12 @@ export class PrismaTransactionRepository implements TransactionRepository {
     if (filters.categoryId) {
       where.categoryId = filters.categoryId;
     }
-    if (filters.month && filters.year) {
+    if (filters.startDate || filters.endDate) {
+      where.date = {
+        ...(filters.startDate ? { gte: new Date(filters.startDate) } : {}),
+        ...(filters.endDate ? { lte: new Date(filters.endDate) } : {}),
+      };
+    } else if (filters.month && filters.year) {
       const start = new Date(filters.year, filters.month - 1, 1);
       const end = new Date(filters.year, filters.month, 0);
       where.date = { gte: start, lte: end };
@@ -81,13 +90,29 @@ export class PrismaTransactionRepository implements TransactionRepository {
     accountId: string;
     userId: string;
   }): Promise<Transaction> {
-    const tx = await this.prisma.transaction.create({
-      data: {
-        ...data,
-        amount: new Prisma.Decimal(data.amount),
-      },
-      include: { category: true },
+    const tx = await this.prisma.$transaction(async (prisma) => {
+      const created = await prisma.transaction.create({
+        data: {
+          ...data,
+          amount: new Prisma.Decimal(data.amount),
+        },
+        include: { category: true },
+      });
+
+      await prisma.account.update({
+        where: { id: data.accountId, userId: data.userId },
+        data: {
+          balance: {
+            increment: new Prisma.Decimal(
+              getBalanceDelta(data.type, data.amount),
+            ),
+          },
+        },
+      });
+
+      return created;
     });
+
     return new Transaction({
       ...tx,
       description: tx.description ?? undefined,
@@ -114,12 +139,50 @@ export class PrismaTransactionRepository implements TransactionRepository {
     if (data.categoryId !== undefined) {
       updateData.category = { connect: { id: data.categoryId } };
     }
+    if (data.accountId !== undefined) {
+      updateData.account = { connect: { id: data.accountId } };
+    }
 
-    const tx = await this.prisma.transaction.update({
-      where: { id, userId },
-      data: updateData,
-      include: { category: true },
+    const tx = await this.prisma.$transaction(async (prisma) => {
+      const existing = await prisma.transaction.findFirstOrThrow({
+        where: { id, userId },
+      });
+      const previousAmount = Number(existing.amount);
+      const nextAmount = data.amount ?? previousAmount;
+      const nextType = data.type ?? (existing.type as TransactionType);
+      const nextAccountId = data.accountId ?? existing.accountId;
+
+      await prisma.account.update({
+        where: { id: existing.accountId, userId },
+        data: {
+          balance: {
+            increment: new Prisma.Decimal(
+              -getBalanceDelta(existing.type as TransactionType, previousAmount),
+            ),
+          },
+        },
+      });
+
+      const updated = await prisma.transaction.update({
+        where: { id, userId },
+        data: updateData,
+        include: { category: true },
+      });
+
+      await prisma.account.update({
+        where: { id: nextAccountId, userId },
+        data: {
+          balance: {
+            increment: new Prisma.Decimal(
+              getBalanceDelta(nextType, nextAmount),
+            ),
+          },
+        },
+      });
+
+      return updated;
     });
+
     return new Transaction({
       ...tx,
       description: tx.description ?? undefined,
@@ -129,7 +192,26 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    await this.prisma.transaction.delete({ where: { id, userId } });
+    await this.prisma.$transaction(async (prisma) => {
+      const existing = await prisma.transaction.findFirstOrThrow({
+        where: { id, userId },
+      });
+
+      await prisma.transaction.delete({ where: { id, userId } });
+      await prisma.account.update({
+        where: { id: existing.accountId, userId },
+        data: {
+          balance: {
+            increment: new Prisma.Decimal(
+              -getBalanceDelta(
+                existing.type as TransactionType,
+                Number(existing.amount),
+              ),
+            ),
+          },
+        },
+      });
+    });
   }
 
   async getMonthlySummary(

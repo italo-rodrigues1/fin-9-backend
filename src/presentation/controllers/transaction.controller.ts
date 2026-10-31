@@ -45,6 +45,16 @@ export class TransactionController {
     @CurrentUser() user: { id: string },
     @Query() filters: FilterTransactionDto,
   ) {
+    if (
+      filters.startDate &&
+      filters.endDate &&
+      filters.startDate > filters.endDate
+    ) {
+      throw new BadRequestException(
+        'A data inicial não pode ser posterior à data final',
+      );
+    }
+
     return this.txRepo.findAll({ ...filters, userId: user.id });
   }
 
@@ -107,6 +117,15 @@ export class TransactionController {
       }
     }
 
+    if (dto.accountId) {
+      const account = await this.accountRepo.findById(dto.accountId, user.id);
+      if (!account) {
+        throw new BadRequestException(
+          'Account not found or does not belong to the user',
+        );
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.description !== undefined) updateData.description = dto.description;
@@ -114,6 +133,7 @@ export class TransactionController {
     if (dto.type !== undefined) updateData.type = dto.type;
     if (dto.date !== undefined) updateData.date = new Date(dto.date);
     if (dto.categoryId !== undefined) updateData.categoryId = dto.categoryId;
+    if (dto.accountId !== undefined) updateData.accountId = dto.accountId;
 
     return this.txRepo.update(id, user.id, updateData);
   }

@@ -5,6 +5,8 @@ export interface TransactionFilters {
   accountId?: string;
   month?: number;
   year?: number;
+  startDate?: string;
+  endDate?: string;
   type?: TransactionType;
   categoryId?: string;
   orderBy?: 'date' | 'amount';
