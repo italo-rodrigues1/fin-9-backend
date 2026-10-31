@@ -1,6 +1,6 @@
-import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
@@ -35,7 +35,9 @@ async function bootstrap() {
 
   const jwtSecret = configService.get<string>('JWT_SECRET');
   if (!jwtSecret || jwtSecret.length < 32) {
-    throw new Error('JWT_SECRET must be defined and at least 32 characters long');
+    throw new Error(
+      'JWT_SECRET must be defined and at least 32 characters long',
+    );
   }
 
   await app.listen(port);

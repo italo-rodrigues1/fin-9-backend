@@ -6,6 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 model User {
   id           String        @id @default(uuid())
   name         String
@@ -18,11 +23,6 @@ model User {
   categories   Category[]
 
   @@map("users")
-}
-
-enum TransactionType {
-  INCOME
-  EXPENSE
 }
 
 model Category {
