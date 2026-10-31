@@ -20,6 +20,7 @@ describe('AuthController — email domain acceptance', () => {
 
   const mockUserRepo = {
     findByEmail: jest.fn(),
+    findByEmailWithHash: jest.fn().mockResolvedValue(null),
     findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -34,7 +35,9 @@ describe('AuthController — email domain acceptance', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
-        JwtModule.register({ secret: 'test-secret-for-unit-tests-only-32chars' }),
+        JwtModule.register({
+          secret: 'test-secret-for-unit-tests-only-32chars',
+        }),
       ],
       controllers: [AuthController],
       providers: [
@@ -45,7 +48,9 @@ describe('AuthController — email domain acceptance', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -69,19 +74,26 @@ describe('AuthController — email domain acceptance', () => {
     ['user@company.io'],
     ['admin@corp.org'],
     ['contact@startup.dev'],
-  ])('should accept registration with email %s (non-whitelisted domain)', async (email) => {
-    const payload = { name: 'Test User', email, password: 'Password1' };
+  ])(
+    'should accept registration with email %s (non-whitelisted domain)',
+    async (email) => {
+      const payload = { name: 'Test User', email, password: 'Password1' };
 
-    const res = await request(app.getHttpServer())
-      .post('/auth/register')
-      .send(payload);
+      const res = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send(payload);
 
-    expect(res.status).not.toBe(409);
-    expect(res.status).toBe(201);
-  });
+      expect(res.status).not.toBe(409);
+      expect(res.status).toBe(201);
+    },
+  );
 
   it('should still reject syntactically invalid emails', async () => {
-    const payload = { name: 'Test User', email: 'not-an-email', password: 'Password1' };
+    const payload = {
+      name: 'Test User',
+      email: 'not-an-email',
+      password: 'Password1',
+    };
 
     const res = await request(app.getHttpServer())
       .post('/auth/register')
@@ -100,6 +112,7 @@ describe('AuthController — rate limiting', () => {
 
   const mockUserRepo = {
     findByEmail: jest.fn(),
+    findByEmailWithHash: jest.fn().mockResolvedValue(null),
     findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -114,7 +127,9 @@ describe('AuthController — rate limiting', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ThrottlerModule.forRoot([{ ttl: 60000, limit: 10 }]),
-        JwtModule.register({ secret: 'test-secret-for-unit-tests-only-32chars' }),
+        JwtModule.register({
+          secret: 'test-secret-for-unit-tests-only-32chars',
+        }),
       ],
       controllers: [AuthController],
       providers: [
@@ -125,7 +140,9 @@ describe('AuthController — rate limiting', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -147,7 +164,7 @@ describe('AuthController — rate limiting', () => {
       const res = await request(app.getHttpServer())
         .post('/auth/login')
         .send(payload);
-      expect(res.status).not.toBe(429);
+      expect(res.status).toBe(401);
     }
 
     // 6th request must be rate limited

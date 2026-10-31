@@ -16,6 +16,25 @@ function getBalanceDelta(type: TransactionType, amount: number): number {
 export class PrismaTransactionRepository implements TransactionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async runTransaction<T>(
+    operation: (client: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== 'P2034' ||
+          attempt >= 2
+        )
+          throw error;
+      }
+    }
+  }
+
   async findById(id: string, userId: string): Promise<Transaction | null> {
     const tx = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -47,13 +66,13 @@ export class PrismaTransactionRepository implements TransactionRepository {
         ...(filters.endDate ? { lte: new Date(filters.endDate) } : {}),
       };
     } else if (filters.month && filters.year) {
-      const start = new Date(filters.year, filters.month - 1, 1);
-      const end = new Date(filters.year, filters.month, 0);
-      where.date = { gte: start, lte: end };
+      const start = new Date(Date.UTC(filters.year, filters.month - 1, 1));
+      const end = new Date(Date.UTC(filters.year, filters.month, 1));
+      where.date = { gte: start, lt: end };
     } else if (filters.year) {
-      const start = new Date(filters.year, 0, 1);
-      const end = new Date(filters.year, 11, 31);
-      where.date = { gte: start, lte: end };
+      const start = new Date(Date.UTC(filters.year, 0, 1));
+      const end = new Date(Date.UTC(filters.year + 1, 0, 1));
+      where.date = { gte: start, lt: end };
     }
 
     const orderBy: Prisma.TransactionOrderByWithRelationInput = {};
@@ -90,7 +109,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
     accountId: string;
     userId: string;
   }): Promise<Transaction> {
-    const tx = await this.prisma.$transaction(async (prisma) => {
+    const tx = await this.runTransaction(async (prisma) => {
       const created = await prisma.transaction.create({
         data: {
           ...data,
@@ -143,7 +162,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       updateData.account = { connect: { id: data.accountId } };
     }
 
-    const tx = await this.prisma.$transaction(async (prisma) => {
+    const tx = await this.runTransaction(async (prisma) => {
       const existing = await prisma.transaction.findFirstOrThrow({
         where: { id, userId },
       });
@@ -157,7 +176,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
         data: {
           balance: {
             increment: new Prisma.Decimal(
-              -getBalanceDelta(existing.type as TransactionType, previousAmount),
+              -getBalanceDelta(
+                existing.type as TransactionType,
+                previousAmount,
+              ),
             ),
           },
         },
@@ -192,7 +214,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    await this.prisma.$transaction(async (prisma) => {
+    await this.runTransaction(async (prisma) => {
       const existing = await prisma.transaction.findFirstOrThrow({
         where: { id, userId },
       });
@@ -220,43 +242,43 @@ export class PrismaTransactionRepository implements TransactionRepository {
     year: number,
     accountId?: string,
   ): Promise<MonthlySummary> {
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0);
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 1));
 
     const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
-        date: { gte: start, lte: end },
+        date: { gte: start, lt: end },
         ...(accountId && { accountId }),
       },
       include: { category: true },
     });
 
-    let totalIncome = 0;
-    let totalExpense = 0;
+    let totalIncome = new Prisma.Decimal(0);
+    let totalExpense = new Prisma.Decimal(0);
     const categoryMap = new Map<
       string,
       {
         categoryId: string;
         categoryName: string;
         categoryColor: string;
-        total: number;
+        total: Prisma.Decimal;
         type: TransactionType;
       }
     >();
 
     for (const tx of transactions) {
-      const amount = Number(tx.amount);
+      const amount = new Prisma.Decimal(tx.amount);
       if (tx.type === 'INCOME') {
-        totalIncome += amount;
+        totalIncome = totalIncome.plus(amount);
       } else {
-        totalExpense += amount;
+        totalExpense = totalExpense.plus(amount);
       }
 
       const key = `${tx.categoryId}-${tx.type}`;
       const existing = categoryMap.get(key);
       if (existing) {
-        existing.total += amount;
+        existing.total = existing.total.plus(amount);
       } else {
         categoryMap.set(key, {
           categoryId: tx.categoryId,
@@ -269,11 +291,14 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }
 
     return {
-      totalIncome,
-      totalExpense,
-      balance: totalIncome - totalExpense,
+      totalIncome: totalIncome.toNumber(),
+      totalExpense: totalExpense.toNumber(),
+      balance: totalIncome.minus(totalExpense).toNumber(),
       accounts: [],
-      byCategory: Array.from(categoryMap.values()),
+      byCategory: Array.from(categoryMap.values()).map((item) => ({
+        ...item,
+        total: item.total.toNumber(),
+      })),
     };
   }
 }
