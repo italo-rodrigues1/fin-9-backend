@@ -1,3 +1,4 @@
+import { GoalsModule } from './presentation/modules/goals.module';
 import { API_RATE_LIMIT } from './rate-limit.config';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -17,6 +18,7 @@ import {
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([API_RATE_LIMIT]),
     DatabaseModule,
+    GoalsModule,
     HealthModule,
     AuthModule,
     AccountModule,
