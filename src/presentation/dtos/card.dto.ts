@@ -1,6 +1,8 @@
 import { Transform, Type } from 'class-transformer';
+import { CardBrand } from '@prisma/client';
 import {
   IsBoolean,
+  IsEnum,
   IsDateString,
   IsInt,
   IsNotEmpty,
@@ -21,6 +23,9 @@ export class SaveCardDto {
   @IsNotEmpty()
   @MaxLength(100)
   name: string;
+  @IsOptional()
+  @IsEnum(CardBrand, { message: 'Selecione uma bandeira válida.' })
+  brand?: CardBrand | null;
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)

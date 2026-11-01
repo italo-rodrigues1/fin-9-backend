@@ -22,6 +22,14 @@ enum RecurrenceInterval {
   YEARLY
 }
 
+enum CardBrand {
+  VISA
+  MASTERCARD
+  ELO
+  AMERICAN_EXPRESS
+  HIPERCARD
+}
+
 model User {
   creditCards       CreditCard[]
   cardPurchases     CardPurchase[]
@@ -219,6 +227,7 @@ model CreditCard {
   userId      String         @map("user_id")
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
+  brand       CardBrand?
   creditLimit Decimal        @map("credit_limit") @db.Decimal(12, 2)
   closingDay  Int            @map("closing_day")
   dueDay      Int            @map("due_day")

@@ -7,6 +7,42 @@ import {
   PayCardInvoiceDto,
 } from './card.dto';
 describe('Credit card input validation', () => {
+  it.each([
+    'VISA',
+    'MASTERCARD',
+    'ELO',
+    'AMERICAN_EXPRESS',
+    'HIPERCARD',
+    null,
+    undefined,
+  ])('accepts supported or unspecified brand %s', async (brand) => {
+    expect(
+      await validate(
+        plainToInstance(SaveCardDto, {
+          name: 'Cartão',
+          creditLimit: 1000,
+          closingDay: 10,
+          dueDay: 15,
+          brand,
+        }),
+      ),
+    ).toHaveLength(0);
+  });
+  it.each(['OUTRA', '', 'visa', 1, {}])(
+    'rejects unsupported brand %p',
+    async (brand) => {
+      const errors = await validate(
+        plainToInstance(SaveCardDto, {
+          name: 'Cartão',
+          creditLimit: 1000,
+          closingDay: 10,
+          dueDay: 15,
+          brand,
+        }),
+      );
+      expect(errors.map((error) => error.property)).toEqual(['brand']);
+    },
+  );
   it('validates card names, positive limits and calendar days', async () => {
     expect(
       await validate(

@@ -107,6 +107,39 @@ test('P3 credit cards against PostgreSQL', { timeout: 60000 }, async (t) => {
       },
     );
     await t.test(
+      'persists brand changes, preserves omitted brands and supports legacy cards',
+      async () => {
+        assert.equal((await cards.detail(userId, card.id)).card.brand, null);
+        await cards.saveCard(userId, { ...cardData, brand: 'VISA' }, card.id);
+        assert.equal((await cards.detail(userId, card.id)).card.brand, 'VISA');
+        assert.equal(
+          (await cards.list(userId)).find((row) => row.id === card.id).brand,
+          'VISA',
+        );
+        await cards.saveCard(userId, cardData, card.id);
+        assert.equal((await cards.detail(userId, card.id)).card.brand, 'VISA');
+        await cards.saveCard(
+          userId,
+          { ...cardData, brand: 'MASTERCARD' },
+          card.id,
+        );
+        assert.equal(
+          (await cards.detail(userId, card.id)).card.brand,
+          'MASTERCARD',
+        );
+        await cards.saveCard(userId, { ...cardData, brand: null }, card.id);
+        assert.equal((await cards.detail(userId, card.id)).card.brand, null);
+        const branded = await cards.saveCard(userId, {
+          ...cardData,
+          brand: 'ELO',
+        });
+        assert.equal(
+          (await cards.detail(userId, branded.id)).card.brand,
+          'ELO',
+        );
+      },
+    );
+    await t.test(
       'purchases create exact installments without moving cash or duplicating expenses',
       async () => {
         purchase = await cards.savePurchase(userId, card.id, {

@@ -147,6 +147,7 @@ export class CardsService {
       }
       const values = {
           name: data.name.trim(),
+          ...(data.brand !== undefined ? { brand: data.brand } : {}),
           creditLimit: new Prisma.Decimal(data.creditLimit),
           closingDay: data.closingDay,
           dueDay: data.dueDay,
