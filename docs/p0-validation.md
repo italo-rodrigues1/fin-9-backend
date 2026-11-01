@@ -1,5 +1,7 @@
 # P0 — Regras financeiras
 
+Este é um registro histórico da etapa. Consulte as [regras de negócio atuais](regras-de-negocio.md), que substituem a regra antiga de arquivamento de contas.
+
 - [x] Criação, edição e exclusão atômicas de lançamentos e seus saldos.
 - [x] Isolamento serializável com até três tentativas para conflitos P2034.
 - [x] Resumos com Decimal, preservando precisão de centavos.

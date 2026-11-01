@@ -1,9 +1,10 @@
+import { businessDay } from './business-day';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Recurrence } from '@prisma/client';
 import { PrismaService } from '../infrastructure/database/prisma.service';
 import { PrismaTransactionRepository } from '../infrastructure/repositories/prisma-transaction.repository';
 import {
@@ -15,7 +16,7 @@ import {
   TransferDto,
 } from '../presentation/dtos/planning.dto';
 import { budgetProgress, recurrenceDate, serializable } from './finance-rules';
-const day = () => new Date(new Date().toISOString().slice(0, 10));
+const day = businessDay;
 @Injectable()
 export class PlanningService {
   constructor(
@@ -29,7 +30,12 @@ export class PlanningService {
     active = false,
   ) {
     const value = await tx.account.findFirst({
-      where: { id, userId, ...(active ? { isArchived: false } : {}) },
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+        ...(active ? { isArchived: false } : {}),
+      },
     });
     if (!value)
       throw new BadRequestException('Conta não encontrada ou arquivada.');
@@ -47,7 +53,11 @@ export class PlanningService {
     await this.materialize(userId);
     if (period.accountId) await this.account(this.db, userId, period.accountId);
     const accounts = await this.db.account.findMany({
-      where: { userId, ...(period.accountId ? { id: period.accountId } : {}) },
+      where: {
+        userId,
+        deletedAt: null,
+        ...(period.accountId ? { id: period.accountId } : {}),
+      },
     });
     const history = await Promise.all(
       Array.from({ length: 6 }, async (_, index) => {
@@ -76,6 +86,7 @@ export class PlanningService {
       where: {
         userId,
         status: 'PLANNED',
+        account: { deletedAt: null },
         date: { gte: start, lt: end },
         ...(period.accountId ? { accountId: period.accountId } : {}),
       },
@@ -198,6 +209,8 @@ export class PlanningService {
       if (id) {
         const old = await tx.transfer.findFirst({ where: { id, userId } });
         if (!old) throw new NotFoundException('Transferência não encontrada.');
+        await this.account(tx, userId, old.fromAccountId);
+        await this.account(tx, userId, old.toAccountId);
         await tx.account.update({
           where: { id: old.fromAccountId, userId },
           data: { balance: { increment: old.amount } },
@@ -233,6 +246,8 @@ export class PlanningService {
     return serializable(this.db, async (tx) => {
       const old = await tx.transfer.findFirst({ where: { id, userId } });
       if (!old) throw new NotFoundException('Transferência não encontrada.');
+      await this.account(tx, userId, old.fromAccountId);
+      await this.account(tx, userId, old.toAccountId);
       await tx.transfer.delete({ where: { id, userId } });
       await tx.account.update({
         where: { id: old.fromAccountId, userId },
@@ -315,16 +330,18 @@ export class PlanningService {
       throw new BadRequestException(
         'A data final deve ser igual ou posterior à inicial.',
       );
-    await this.account(this.db, userId, data.accountId, true);
-    await this.category(this.db, userId, data.categoryId);
-    const row = await this.db.recurrence.create({
-      data: {
-        ...data,
-        userId,
-        amount: new Prisma.Decimal(data.amount),
-        startDate: start,
-        endDate: end,
-      },
+    const row = await serializable<Recurrence>(this.db, async (tx) => {
+      await this.account(tx, userId, data.accountId, true);
+      await this.category(tx, userId, data.categoryId);
+      return tx.recurrence.create({
+        data: {
+          ...data,
+          userId,
+          amount: new Prisma.Decimal(data.amount),
+          startDate: start,
+          endDate: end,
+        },
+      });
     });
     await this.materialize(userId);
     return { ...row, amount: row.amount.toNumber() };
@@ -333,6 +350,7 @@ export class PlanningService {
     return serializable(this.db, async (tx) => {
       const old = await tx.recurrence.findFirst({ where: { id, userId } });
       if (!old) throw new NotFoundException('Recorrência não encontrada.');
+      await this.account(tx, userId, data.accountId ?? old.accountId);
       if (data.accountId) await this.account(tx, userId, data.accountId, true);
       if (data.categoryId) await this.category(tx, userId, data.categoryId);
       const { effectiveDate, active, ...fields } = data;
@@ -398,7 +416,7 @@ export class PlanningService {
   }
   async materialize(userId: string) {
     const rules = await this.db.recurrence.findMany({
-      where: { userId, active: true },
+      where: { userId, active: true, account: { deletedAt: null } },
       select: { id: true },
     });
     const horizon = new Date(
@@ -442,7 +460,7 @@ export class PlanningService {
     await this.materialize(userId);
     return (
       await this.db.transaction.findMany({
-        where: { userId, status: 'PLANNED' },
+        where: { userId, status: 'PLANNED', account: { deletedAt: null } },
         include: { category: true },
         orderBy: [{ date: 'asc' }, { id: 'asc' }],
         take: 100,

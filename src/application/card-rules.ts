@@ -1,6 +1,7 @@
+import { businessDay } from './business-day';
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-export const currentDay = () => new Date(new Date().toISOString().slice(0, 10));
+export const currentDay = businessDay;
 export function calendarDay(year: number, month: number, day: number) {
   return new Date(
     Date.UTC(

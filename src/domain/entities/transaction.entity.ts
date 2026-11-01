@@ -4,6 +4,7 @@ export enum TransactionType {
 }
 
 export class Transaction {
+  account?: { id: string; name: string; deletedAt?: Date | null };
   cardPaymentId?: string | null;
   cardPayment?: {
     id: string;

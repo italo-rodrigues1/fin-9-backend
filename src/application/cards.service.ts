@@ -19,7 +19,9 @@ const invoiceRelations = {
   payments: {
     where: { reversedAt: null },
     include: {
-      account: { select: { id: true, name: true, isArchived: true } },
+      account: {
+        select: { id: true, name: true, isArchived: true, deletedAt: true },
+      },
     },
   },
 } satisfies Prisma.CardInvoiceInclude;
@@ -430,7 +432,12 @@ export class CardsService {
           'Registre o pagamento a partir do fechamento, sem data futura.',
         );
       const account = await tx.account.findFirst({
-        where: { id: data.accountId, userId, isArchived: false },
+        where: {
+          id: data.accountId,
+          userId,
+          isArchived: false,
+          deletedAt: null,
+        },
       });
       if (!account)
         throw new BadRequestException('Conta não encontrada ou arquivada.');
@@ -476,7 +483,7 @@ export class CardsService {
         })),
       });
       await tx.account.update({
-        where: { id: account.id, userId, isArchived: false },
+        where: { id: account.id, userId, isArchived: false, deletedAt: null },
         data: { balance: { decrement: amount } },
       });
       return { ...payment, amount: payment.amount.toNumber() };
@@ -490,6 +497,13 @@ export class CardsService {
       });
       if (!payment) throw new NotFoundException('Pagamento não encontrado.');
       if (payment.reversedAt) return { success: true };
+      const origin = await tx.account.findFirst({
+        where: { id: payment.accountId, userId },
+      });
+      if (!origin || origin.deletedAt)
+        throw new ConflictException(
+          'Pagamentos de contas excluídas estão disponíveis apenas para consulta.',
+        );
       await tx.transaction.deleteMany({ where: { userId, cardPaymentId: id } });
       await tx.account.update({
         where: { id: payment.accountId, userId },

@@ -1,4 +1,5 @@
 export class Account {
+  deletedAt?: Date | null;
   isArchived: boolean = false;
   id: string;
   name: string;

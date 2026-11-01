@@ -1,4 +1,9 @@
-import { serializable, isSerializationConflict } from './finance-rules';
+import {
+  serializable,
+  isSerializationConflict,
+  budgetProgress,
+  progressPercentage,
+} from './finance-rules';
 import { Prisma } from '@prisma/client';
 describe('Serializable transaction retries', () => {
   it('recognizes Prisma and PostgreSQL adapter commit conflicts', () => {
@@ -49,5 +54,27 @@ describe('Serializable transaction retries', () => {
       db = { $transaction: jest.fn().mockRejectedValue(conflict) };
     await expect(serializable(db, async () => 0)).rejects.toBe(conflict);
     expect(db.$transaction).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('Financial percentage precision', () => {
+  it('does not trigger budget alerts before exact monetary thresholds', () => {
+    for (const [used, alert] of [
+      [79.99, 'OK'],
+      [80, 'WARNING'],
+      [99.99, 'WARNING'],
+      [100, 'EXCEEDED'],
+    ] as const)
+      expect(
+        budgetProgress(new Prisma.Decimal(100), new Prisma.Decimal(used)).alert,
+      ).toBe(alert);
+  });
+  it('does not display complete progress before the target is reached', () => {
+    expect(
+      progressPercentage(new Prisma.Decimal(99.99), new Prisma.Decimal(100)),
+    ).toBe(99.9);
+    expect(
+      progressPercentage(new Prisma.Decimal(100), new Prisma.Decimal(100)),
+    ).toBe(100);
   });
 });

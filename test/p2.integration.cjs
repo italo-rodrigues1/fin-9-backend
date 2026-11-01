@@ -262,7 +262,6 @@ test('P2 savings goals against PostgreSQL', { timeout: 60000 }, async (t) => {
           (await service.detail(userId, g.id, page)).goal.allocatedAmount,
           50,
         );
-        await assert.rejects(accounts.delete(a.id, userId), { status: 409 });
       },
     );
     await t.test(

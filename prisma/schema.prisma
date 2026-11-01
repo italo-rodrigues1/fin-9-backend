@@ -87,8 +87,8 @@ model Transaction {
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
-  @@index([cardPaymentId])
   @@unique([recurrenceId, occurrenceDate])
+  @@index([cardPaymentId])
   @@index([userId, status, date])
   @@index([userId, date])
   @@index([userId, type])
@@ -97,6 +97,7 @@ model Transaction {
 }
 
 model Account {
+  deletedAt         DateTime?          @map("deleted_at")
   cardPayments      CardPayment[]
   goalContributions GoalContribution[]
   isArchived        Boolean            @default(false) @map("is_archived")

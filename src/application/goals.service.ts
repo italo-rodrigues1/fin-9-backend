@@ -1,3 +1,4 @@
+import { businessDay } from './business-day';
 import {
   BadRequestException,
   ConflictException,
@@ -11,7 +12,7 @@ import {
   SaveGoalContributionDto,
   SaveGoalDto,
 } from '../presentation/dtos/goal.dto';
-import { serializable } from './finance-rules';
+import { serializable, progressPercentage } from './finance-rules';
 import { goalFunding } from './goal-funding';
 @Injectable()
 export class GoalsService {
@@ -32,7 +33,7 @@ export class GoalsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
       tx.account.findMany({
-        where: { userId },
+        where: { userId, deletedAt: null },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       }),
       tx.goalContribution.groupBy({
@@ -49,7 +50,7 @@ export class GoalsService {
         amount: a._sum.amount || new Prisma.Decimal(0),
       })),
     );
-    const today = new Date(new Date().toISOString().slice(0, 10));
+    const today = businessDay();
     const summaries = goals.map((goal) => {
       const totals = funding.goals.get(goal.id) || {
         allocated: new Prisma.Decimal(0),
@@ -65,11 +66,7 @@ export class GoalsService {
           0,
           goal.targetAmount.minus(totals.funded),
         ).toNumber(),
-        percentage: totals.funded
-          .div(goal.targetAmount)
-          .mul(100)
-          .toDecimalPlaces(1)
-          .toNumber(),
+        percentage: progressPercentage(totals.funded, goal.targetAmount),
         status: totals.funded.gte(goal.targetAmount)
           ? 'COMPLETED'
           : totals.funded.lt(totals.allocated)
@@ -115,6 +112,7 @@ export class GoalsService {
                 name: true,
                 institution: true,
                 isArchived: true,
+                deletedAt: true,
               },
             },
           },
@@ -187,7 +185,7 @@ export class GoalsService {
       if (id && !old)
         throw new NotFoundException('Contribuição não encontrada.');
       const account = await tx.account.findFirst({
-        where: { id: data.accountId, userId },
+        where: { id: data.accountId, userId, deletedAt: null },
       });
       if (!account) throw new BadRequestException('Conta não encontrada.');
       const amount = new Prisma.Decimal(data.amount),

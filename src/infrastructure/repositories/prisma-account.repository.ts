@@ -1,4 +1,5 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { serializable } from '../../application/finance-rules';
 import { Prisma } from '@prisma/client';
 import { Account } from '../../domain/entities';
 import { AccountRepository } from '../../domain/repositories';
@@ -10,7 +11,7 @@ export class PrismaAccountRepository implements AccountRepository {
 
   async findAll(userId: string): Promise<Account[]> {
     const accounts = await this.prisma.account.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       orderBy: [{ createdAt: 'asc' }],
     });
     return accounts.map(
@@ -24,7 +25,7 @@ export class PrismaAccountRepository implements AccountRepository {
 
   async findById(id: string, userId: string): Promise<Account | null> {
     const account = await this.prisma.account.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
     });
 
     if (!account) return null;
@@ -73,7 +74,7 @@ export class PrismaAccountRepository implements AccountRepository {
     if (data.icon !== undefined) updateData.icon = data.icon;
 
     const account = await this.prisma.account.update({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
       data: updateData,
     });
 
@@ -84,30 +85,18 @@ export class PrismaAccountRepository implements AccountRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    if (
-      await this.prisma.cardPayment.count({ where: { userId, accountId: id } })
-    )
-      throw new ConflictException(
-        'Arquive a conta para preservar o histórico de pagamentos de faturas.',
-      );
-    if (
-      await this.prisma.goalContribution.count({
+    await serializable(this.prisma, async (tx) => {
+      const account = await tx.account.findFirst({ where: { id, userId } });
+      if (!account) throw new NotFoundException('Conta não encontrada.');
+      if (account.deletedAt) return;
+      await tx.account.update({
+        where: { id, userId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+      await tx.recurrence.updateMany({
         where: { userId, accountId: id },
-      })
-    )
-      throw new ConflictException(
-        'Arquive a conta ou remova suas contribuições para metas antes de excluí-la.',
-      );
-    if (
-      await this.prisma.transfer.count({
-        where: { userId, OR: [{ fromAccountId: id }, { toAccountId: id }] },
-      })
-    )
-      throw new ConflictException(
-        'Arquive a conta para preservar seu histórico de transferências.',
-      );
-    await this.prisma.account.delete({
-      where: { id, userId },
+        data: { active: false },
+      });
     });
   }
 }

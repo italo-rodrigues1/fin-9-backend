@@ -1,6 +1,5 @@
 import {
   Body,
-  ConflictException,
   Controller,
   Delete,
   Get,
@@ -67,21 +66,6 @@ export class AccountController {
 
   @Delete(':id')
   async remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
-    const existing = await this.accountRepo.findById(id, user.id);
-    if (!existing) {
-      throw new NotFoundException('Account not found');
-    }
-
-    const transactions = await this.transactionRepo.findAll({
-      userId: user.id,
-      accountId: id,
-    });
-    if (transactions.length > 0) {
-      throw new ConflictException(
-        'Exclua ou mova as transações desta conta antes de removê-la',
-      );
-    }
-
     await this.accountRepo.delete(id, user.id);
     return { message: 'Account deleted successfully' };
   }

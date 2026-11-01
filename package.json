@@ -20,7 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:p1": "npm run build && node --test test/p1.integration.cjs",
     "test:p2": "npm run build && node --test test/p2.integration.cjs",
-    "test:p3": "npm run build && node --test test/p3.integration.cjs"
+    "test:p3": "npm run build && node --test test/p3.integration.cjs",
+    "test:accounts": "npm run build && node --test test/account-removal.integration.cjs",
+    "test:finance": "npm run build && node --test --test-concurrency=1 test/p1.integration.cjs test/p2.integration.cjs test/p3.integration.cjs test/account-removal.integration.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -11,13 +11,27 @@ export function recurrenceDate(
   const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   return new Date(Date.UTC(year, month, Math.min(anchor.getUTCDate(), last)));
 }
+export function progressPercentage(
+  current: Prisma.Decimal,
+  target: Prisma.Decimal,
+) {
+  return current
+    .div(target)
+    .mul(100)
+    .toDecimalPlaces(1, Prisma.Decimal.ROUND_DOWN)
+    .toNumber();
+}
 export function budgetProgress(limit: Prisma.Decimal, used: Prisma.Decimal) {
-  const percentage = used.div(limit).mul(100).toDecimalPlaces(1).toNumber();
+  const percentage = progressPercentage(used, limit);
   return {
     used: used.toNumber(),
     remaining: limit.minus(used).toNumber(),
     percentage,
-    alert: percentage >= 100 ? 'EXCEEDED' : percentage >= 80 ? 'WARNING' : 'OK',
+    alert: used.gte(limit)
+      ? 'EXCEEDED'
+      : used.mul(100).gte(limit.mul(80))
+        ? 'WARNING'
+        : 'OK',
   };
 }
 export function isSerializationConflict(error: unknown): boolean {

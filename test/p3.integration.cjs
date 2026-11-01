@@ -411,9 +411,6 @@ test('P3 credit cards against PostgreSQL', { timeout: 60000 }, async (t) => {
         await assert.rejects(cards.savePurchase(userId, card.id, payload), {
           status: 400,
         });
-        await assert.rejects(accounts.delete(account.id, userId), {
-          status: 409,
-        });
       },
     );
     await t.test(

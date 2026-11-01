@@ -32,6 +32,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
     const tx = await this.prisma.transaction.findFirst({
       where: { id, userId },
       include: {
+        account: { select: { id: true, name: true, deletedAt: true } },
         cardPayment: {
           select: {
             id: true,
@@ -94,6 +95,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       ...(filters.take !== undefined ? { take: filters.take } : {}),
       include: {
         category: true,
+        account: { select: { id: true, name: true, deletedAt: true } },
         cardPayment: {
           select: {
             id: true,
@@ -136,7 +138,12 @@ export class PrismaTransactionRepository implements TransactionRepository {
       });
 
       await prisma.account.update({
-        where: { id: data.accountId, userId: data.userId, isArchived: false },
+        where: {
+          id: data.accountId,
+          userId: data.userId,
+          isArchived: false,
+          deletedAt: null,
+        },
         data: {
           balance: {
             increment: new Prisma.Decimal(
@@ -183,7 +190,12 @@ export class PrismaTransactionRepository implements TransactionRepository {
     const tx = await this.runTransaction(async (prisma) => {
       const existing = await prisma.transaction.findFirstOrThrow({
         where: { id, userId },
+        include: { account: { select: { deletedAt: true } } },
       });
+      if (existing.account?.deletedAt)
+        throw new ConflictException(
+          'Lançamentos de contas excluídas estão disponíveis apenas para consulta.',
+        );
       if (existing.cardPaymentId)
         throw new ConflictException(
           'Gerencie este lançamento pela fatura do cartão.',
@@ -215,7 +227,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       });
 
       await prisma.account.update({
-        where: { id: nextAccountId, userId },
+        where: { id: nextAccountId, userId, deletedAt: null },
         data: {
           balance: {
             increment: new Prisma.Decimal(
@@ -244,8 +256,13 @@ export class PrismaTransactionRepository implements TransactionRepository {
     await this.runTransaction(async (prisma) => {
       const existing = await prisma.transaction.findFirstOrThrow({
         where: { id, userId },
+        include: { account: { select: { deletedAt: true } } },
       });
 
+      if (existing.account?.deletedAt)
+        throw new ConflictException(
+          'Lançamentos de contas excluídas estão disponíveis apenas para consulta.',
+        );
       if (existing.cardPaymentId)
         throw new ConflictException(
           'Estorne o pagamento pela fatura do cartão.',
