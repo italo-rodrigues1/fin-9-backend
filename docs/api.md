@@ -1,6 +1,6 @@
 # Contratos e documentação da API
 
-Swagger UI (`/docs`), Scalar (`/reference`) e o contrato OpenAPI (`/openapi.json`) são gerados a partir das mesmas rotas. A configuração fica em `src/presentation/documentation`: `api-document.ts` associa as operações aos contratos; `api-schemas.ts` descreve entradas e saídas; `api-documentation.ts` publica as interfaces e seus assets locais. Os testes verificam os campos dos contratos contra os DTOs validados para identificar divergências.
+O Scalar (`/reference`) apresenta o contrato OpenAPI (`/openapi.json`), gerado a partir das rotas da API. A configuração fica em `src/presentation/documentation`: `api-document.ts` associa as operações aos contratos; `api-schemas.ts` descreve entradas e saídas; `api-documentation.ts` publica o Scalar e seus assets locais. Os testes verificam os campos dos contratos contra os DTOs validados para identificar divergências.
 
 ## Autenticação e identidade
 
@@ -10,7 +10,7 @@ Somente `GET /health`, `POST /auth/register`, `POST /auth/login` e `POST /auth/g
 Authorization: Bearer <token>
 ```
 
-O cadastro e os logins retornam `{ user: { id, name, email }, token }`. Login por senha e Google retornam HTTP 200; cadastro retorna HTTP 201. No Swagger, use **Authorize** para informar o token. No Scalar, escolha a autenticação Bearer. Os tokens não persistem no armazenamento do navegador pela configuração das interfaces.
+O cadastro e os logins retornam `{ user: { id, name, email }, token }`. Login por senha e Google retornam HTTP 200; cadastro retorna HTTP 201. No Scalar, escolha a autenticação Bearer para informar o token. Os tokens não persistem no armazenamento do navegador pela configuração da interface.
 
 O usuário é determinado pelo JWT validado. Não envie `userId`, `passwordHash`, `googleSubject`, datas de criação ou outros campos internos no body ou nos filtros. Campos desconhecidos retornam HTTP 400. As respostas omitem identificadores de proprietário e credenciais; IDs de contas, categorias e outros recursos continuam disponíveis para os vínculos de negócio.
 
@@ -66,6 +66,6 @@ A aplicação retorna erros com `statusCode`, `message`, `error`, `path` e `time
 
 ## Fontes das integrações
 
-O Swagger usa a [integração OpenAPI oficial do NestJS](https://docs.nestjs.com/openapi/introduction). Scalar usa o [middleware oficial para NestJS](https://scalar.com/products/api-references/integrations/nestjs). A dependência Swagger permanece na versão 11, compatível com o NestJS do projeto.
+O pacote `@nestjs/swagger` usa a [integração OpenAPI oficial do NestJS](https://docs.nestjs.com/openapi/introduction) para gerar o contrato, sem publicar Swagger UI. Scalar usa o [middleware oficial para NestJS](https://scalar.com/products/api-references/integrations/nestjs). A dependência `@nestjs/swagger` permanece na versão 11, compatível com o NestJS do projeto.
 
 As correções de dependências transitivas e a comparação com a árvore anterior estão registradas em [validação de segurança](security-validation.md).

@@ -21,11 +21,10 @@ Com a API executando na porta padrão 3333:
 
 | Interface    | Endereço                           |
 | ------------ | ---------------------------------- |
-| Swagger UI   | http://localhost:3333/docs         |
 | Scalar       | http://localhost:3333/reference    |
 | OpenAPI JSON | http://localhost:3333/openapi.json |
 
-As duas interfaces usam o mesmo contrato e permitem informar o Bearer token. Consulte [contratos, autenticação e exemplos](docs/api.md). Os assets são servidos localmente; Scalar não usa proxy, fontes externas ou telemetria. Os endpoints de documentação são públicos, e as operações de negócio exigem JWT.
+O Scalar apresenta o contrato OpenAPI e permite informar o Bearer token. Consulte [contratos, autenticação e exemplos](docs/api.md). Os assets são servidos localmente; Scalar não usa proxy, fontes externas ou telemetria. Os endpoints de documentação são públicos, e as operações de negócio exigem JWT. O pacote `@nestjs/swagger` gera o contrato OpenAPI, sem publicar Swagger UI.
 
 ## Validação
 

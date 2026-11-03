@@ -76,8 +76,10 @@ describe('API documentation', () => {
       .compile();
     app = fixture.createNestApplication();
     app.use(helmet());
-    SwaggerModule.setup('docs', app, createApiDocument(app), {
+    SwaggerModule.setup('openapi', app, createApiDocument(app), {
+      ui: false,
       jsonDocumentUrl: '/openapi.json',
+      raw: ['json'],
     });
     await app.init();
   });

@@ -65,10 +65,9 @@ test(
     const auth = (token) => ({ Authorization: `Bearer ${token}` });
     try {
       await t.test(
-        'Swagger, Scalar and local assets load with security headers',
+        'only Scalar and OpenAPI are served, with local assets and security headers',
         async () => {
           for (const url of [
-            '/docs',
             '/reference',
             '/openapi.json',
             '/reference/scalar.js',
@@ -76,6 +75,15 @@ test(
             const response = await request(http).get(url);
             assert.equal(response.status, 200, url);
             assert.equal(response.headers['x-content-type-options'], 'nosniff');
+          }
+          for (const url of ['/docs', '/docs/swagger-ui-init.js', '/openapi']) {
+            const response = await request(http).get(url);
+            assert.equal(response.status, 404, url);
+            assert.ok(
+              !response.headers['content-security-policy'].includes(
+                "script-src 'self' 'unsafe-inline'",
+              ),
+            );
           }
           const api = await request(http).get('/health');
           assert.ok(

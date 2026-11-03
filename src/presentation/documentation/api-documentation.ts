@@ -6,11 +6,11 @@ import type { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { createApiDocument } from './api-document';
 
-/** Only documentation pages need inline UI scripts/styles. API routes retain Helmet's strict defaults. */
+/** Only Scalar needs inline UI scripts/styles. API routes retain Helmet's strict defaults. */
 export function setupApiDocumentation(app: INestApplication) {
   const document = createApiDocument(app);
   app.use(
-    ['/docs', '/reference'],
+    '/reference',
     helmet.contentSecurityPolicy({
       directives: {
         defaultSrc: ["'self'"],
@@ -25,11 +25,10 @@ export function setupApiDocumentation(app: INestApplication) {
       },
     }),
   );
-  SwaggerModule.setup('docs', app, document, {
+  SwaggerModule.setup('openapi', app, document, {
+    ui: false,
     jsonDocumentUrl: '/openapi.json',
     raw: ['json'],
-    swaggerOptions: { persistAuthorization: false, validatorUrl: null },
-    customSiteTitle: 'Fin-9 — Swagger',
   });
   const scalarBundle = join(
     dirname(require.resolve('@scalar/api-reference')),
