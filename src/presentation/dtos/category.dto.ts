@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptionalField } from './validation.decorators';
+import { IsHexColor, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
@@ -6,26 +7,29 @@ export class CreateCategoryDto {
   @MaxLength(50)
   name: string;
 
-  @IsString()
-  @IsOptional()
+  @IsHexColor()
+  @IsOptionalField()
   color?: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
+  @MaxLength(100)
   icon?: string;
 }
 
 export class UpdateCategoryDto {
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
+  @IsNotEmpty()
   @MaxLength(50)
   name?: string;
 
-  @IsString()
-  @IsOptional()
+  @IsHexColor()
+  @IsOptionalField()
   color?: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
+  @MaxLength(100)
   icon?: string;
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/client/client';
+import { protectPrismaClient } from './rls-client';
 
 function getDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
@@ -43,11 +44,25 @@ export class PrismaService
     super({ adapter });
 
     this.connectionTarget = describeDatabaseTarget(connectionString);
+    return protectPrismaClient(this);
   }
 
   async onModuleInit() {
     try {
       await this.$connect();
+      // Also fails startup if the migration or runtime-role grant is missing.
+      const roles = await protectPrismaClient(this).$queryRaw<
+        Array<{ safe: boolean }>
+      >`
+        SELECT NOT (rolsuper OR rolbypassrls OR rolcanlogin OR rolcreaterole
+                    OR rolcreatedb OR rolreplication) AS safe
+        FROM pg_roles WHERE rolname = current_user
+      `;
+      if (roles.length !== 1 || !roles[0].safe) {
+        throw new Error(
+          'fin9_runtime must be an unprivileged NOBYPASSRLS role',
+        );
+      }
       this.logger.log(
         `Connected to ${this.connectionTarget} using @prisma/adapter-pg`,
       );

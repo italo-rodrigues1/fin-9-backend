@@ -1,3 +1,7 @@
+const {
+  createIntegrationDatabase,
+  withDatabaseUser,
+} = require('./database.cjs');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
@@ -13,9 +17,6 @@ if (
 }
 
 const {
-  PrismaService,
-} = require('../dist/src/infrastructure/database/prisma.service');
-const {
   PrismaUserRepository,
 } = require('../dist/src/infrastructure/repositories/prisma-user.repository');
 const {
@@ -26,8 +27,8 @@ test(
   'Google identity persistence against PostgreSQL',
   { timeout: 60000 },
   async (t) => {
-    const db = new PrismaService();
-    const repo = new PrismaUserRepository(db);
+    const { db, runtime } = createIntegrationDatabase();
+    const repo = new PrismaUserRepository(runtime);
     const cleanup = new Set();
     const prefix = randomUUID();
     const identity = (key, authoritative = true) => ({
@@ -207,9 +208,11 @@ test(
     } finally {
       try {
         // Remove only the fixture identities created by this test run.
-        for (const id of cleanup) await repo.delete(id);
+        for (const id of cleanup)
+          await withDatabaseUser(id, () => repo.delete(id));
       } finally {
         await db.$disconnect();
+        await runtime.$disconnect();
       }
     }
   },

@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { IsOptionalField, ToNumber } from './validation.decorators';
 import {
   IsDateString,
   IsEnum,
@@ -6,7 +6,6 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
-  IsOptional,
   IsString,
   IsUUID,
   Max,
@@ -17,7 +16,7 @@ import {
 import { TransactionType } from '../../domain/entities';
 
 export class CreateTransactionDto {
-  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+  @IsOptionalField() @IsIn(['CONFIRMED', 'PLANNED']) status?:
     | 'CONFIRMED'
     | 'PLANNED';
   @IsString()
@@ -26,7 +25,7 @@ export class CreateTransactionDto {
   title: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
   @MaxLength(500)
   description?: string;
 
@@ -36,13 +35,14 @@ export class CreateTransactionDto {
   )
   @Min(0.01)
   @Max(999_999_999.99, { message: 'Valor máximo excedido' })
-  @Type(() => Number)
+  @ToNumber()
   amount: number;
 
   @IsEnum(TransactionType)
   type: TransactionType;
 
-  @IsDateString()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   date: string;
 
   @IsUUID()
@@ -53,16 +53,17 @@ export class CreateTransactionDto {
 }
 
 export class UpdateTransactionDto {
-  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+  @IsOptionalField() @IsIn(['CONFIRMED', 'PLANNED']) status?:
     | 'CONFIRMED'
     | 'PLANNED';
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
+  @IsNotEmpty()
   @MaxLength(100)
   title?: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptionalField()
   @MaxLength(500)
   description?: string;
 
@@ -72,89 +73,98 @@ export class UpdateTransactionDto {
   )
   @Min(0.01)
   @Max(999_999_999.99, { message: 'Valor máximo excedido' })
-  @IsOptional()
-  @Type(() => Number)
+  @IsOptionalField()
+  @ToNumber()
   amount?: number;
 
   @IsEnum(TransactionType)
-  @IsOptional()
+  @IsOptionalField()
   type?: TransactionType;
 
-  @IsDateString()
-  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsOptionalField()
   date?: string;
 
   @IsUUID()
-  @IsOptional()
+  @IsOptionalField()
   categoryId?: string;
 
   @IsUUID()
-  @IsOptional()
+  @IsOptionalField()
   accountId?: string;
 }
 
 export class FilterTransactionDto {
-  @IsOptional() @IsString() @MaxLength(100) search?: string;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(0) skip?: number;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) take?: number;
-  @IsOptional() @IsIn(['CONFIRMED', 'PLANNED']) status?:
+  @IsOptionalField() @IsString() @MaxLength(100) search?: string;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(0) @Max(100000) skip: number = 0;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(1) @Max(100) take: number = 30;
+  @IsOptionalField() @IsIn(['CONFIRMED', 'PLANNED']) status?:
     | 'CONFIRMED'
     | 'PLANNED';
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
+  @IsOptionalField()
+  @ToNumber()
+  @IsInt()
+  @Min(1)
+  @Max(12)
   month?: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
+  @IsOptionalField()
+  @ToNumber()
+  @IsInt()
+  @Min(1900)
+  @Max(9998)
   year?: number;
 
-  @IsOptional()
-  @IsDateString()
+  @IsOptionalField()
+  @IsDateString({ strict: true })
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'startDate must use the YYYY-MM-DD format',
   })
   startDate?: string;
 
-  @IsOptional()
-  @IsDateString()
+  @IsOptionalField()
+  @IsDateString({ strict: true })
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'endDate must use the YYYY-MM-DD format',
   })
   endDate?: string;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsEnum(TransactionType)
   type?: TransactionType;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsUUID()
   categoryId?: string;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsIn(['date', 'amount'])
   orderBy?: 'date' | 'amount';
 
-  @IsOptional()
+  @IsOptionalField()
   @IsIn(['asc', 'desc'])
   orderDir?: 'asc' | 'desc';
 
-  @IsOptional()
+  @IsOptionalField()
   @IsUUID()
   accountId?: string;
 }
 
 export class MonthlySummaryQueryDto {
-  @Type(() => Number)
-  @IsNumber()
+  @ToNumber()
+  @IsInt()
+  @Min(1)
+  @Max(12)
   month: number;
 
-  @Type(() => Number)
-  @IsNumber()
+  @ToNumber()
+  @IsInt()
+  @Min(1900)
+  @Max(9998)
   year: number;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsUUID()
   accountId?: string;
 }

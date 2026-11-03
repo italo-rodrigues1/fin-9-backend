@@ -20,6 +20,7 @@ const publicUser = {
 
 describe('Google user persistence', () => {
   const tx = {
+    $queryRaw: jest.fn(),
     user: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
@@ -53,6 +54,7 @@ describe('Google user persistence', () => {
     expect(tx.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
+          id: expect.any(String) as unknown,
           name: identity.name,
           email: identity.email,
           googleSubject: identity.subject,

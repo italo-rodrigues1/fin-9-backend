@@ -1,28 +1,21 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import type { Server } from 'node:http';
 import helmet from 'helmet';
-
 import { HealthModule } from './presentation/modules';
+import { corsOptions } from './presentation/http.config';
 
-/**
- * Integration tests — Security headers (Task 1)
- * Validates: Property 7 — Headers de segurança presentes em todas as respostas
- */
-describe('Security headers (Helmet)', () => {
+describe('HTTP security configuration', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       imports: [HealthModule],
     }).compile();
-
-    app = moduleFixture.createNestApplication();
-
-    // Mirror main.ts: helmet must be applied before other middleware
+    app = module.createNestApplication();
     app.use(helmet());
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-
+    app.enableCors(corsOptions('https://app.fin9.test,http://localhost:8081'));
     await app.init();
   });
 
@@ -30,67 +23,64 @@ describe('Security headers (Helmet)', () => {
     await app.close();
   });
 
-  it('GET /health should include X-Content-Type-Options: nosniff', async () => {
-    const response = await request(app.getHttpServer()).get('/health');
+  it('applies Helmet security headers', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .get('/health')
+      .expect(200);
     expect(response.headers['x-content-type-options']).toBe('nosniff');
-  });
-
-  it('GET /health should include X-Frame-Options header', async () => {
-    const response = await request(app.getHttpServer()).get('/health');
     expect(response.headers['x-frame-options']).toBeDefined();
-  });
-
-  it('GET /health should include X-DNS-Prefetch-Control header', async () => {
-    const response = await request(app.getHttpServer()).get('/health');
     expect(response.headers['x-dns-prefetch-control']).toBeDefined();
   });
-});
 
-/**
- * Unit tests — CORS configuration (Task 2)
- * Validates: Property 1 — CORS não aceita wildcard com credentials
- */
-describe('CORS configuration', () => {
-  it('should never combine origin wildcard with credentials: true', () => {
-    // Simulate what main.ts does: read ALLOWED_ORIGINS env var
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000'];
-
-    const corsOptions = {
-      origin: allowedOrigins,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      credentials: true,
-    };
-
-    // The origin must never be the wildcard string '*' when credentials is true
-    expect(corsOptions.origin).not.toBe('*');
-    expect(Array.isArray(corsOptions.origin)).toBe(true);
+  it('allows configured browser origins without cookie credentials', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .get('/health')
+      .set('Origin', 'https://app.fin9.test')
+      .expect(200);
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'https://app.fin9.test',
+    );
+    expect(
+      response.headers['access-control-allow-credentials'],
+    ).toBeUndefined();
   });
 
-  it('should use explicit origins list from ALLOWED_ORIGINS env var', () => {
-    const originalEnv = process.env.ALLOWED_ORIGINS;
-
-    process.env.ALLOWED_ORIGINS = 'http://localhost:3000,http://localhost:19006';
-    const origins = process.env.ALLOWED_ORIGINS.split(',');
-
-    expect(origins).toEqual(['http://localhost:3000', 'http://localhost:19006']);
-    expect(origins).not.toContain('*');
-
-    process.env.ALLOWED_ORIGINS = originalEnv;
+  it('does not reflect arbitrary browser origins', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .get('/health')
+      .set('Origin', 'https://attacker.test')
+      .expect(200);
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  it('should fallback to localhost:3000 when ALLOWED_ORIGINS is not set', () => {
-    const originalEnv = process.env.ALLOWED_ORIGINS;
-    delete process.env.ALLOWED_ORIGINS;
+  it('accepts native clients with no Origin header', async () => {
+    await request(app.getHttpServer() as Server)
+      .get('/health')
+      .expect(200);
+  });
 
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000'];
+  it('allows bearer Authorization in preflight requests', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .options('/health')
+      .set('Origin', 'https://app.fin9.test')
+      .set('Access-Control-Request-Method', 'GET')
+      .set('Access-Control-Request-Headers', 'authorization')
+      .expect(204);
+    expect(response.headers['access-control-allow-headers']).toContain(
+      'authorization',
+    );
+  });
 
-    expect(allowedOrigins).toEqual(['http://localhost:3000']);
-    expect(allowedOrigins).not.toContain('*');
-
-    process.env.ALLOWED_ORIGINS = originalEnv;
+  it('uses development defaults and rejects wildcards, paths and invalid origins', () => {
+    expect(corsOptions().origin).toContain('http://localhost:8081');
+    for (const origin of [
+      '*',
+      'null',
+      'https://app.test/path',
+      'ftp://app.test',
+      'https://app.test,',
+    ]) {
+      expect(() => corsOptions(origin)).toThrow('ALLOWED_ORIGINS');
+    }
   });
 });

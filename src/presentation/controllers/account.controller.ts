@@ -6,6 +6,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -53,7 +54,7 @@ export class AccountController {
   @Patch(':id')
   async update(
     @CurrentUser() user: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAccountDto,
   ) {
     const existing = await this.accountRepo.findById(id, user.id);
@@ -65,7 +66,10 @@ export class AccountController {
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+  async remove(
+    @CurrentUser() user: { id: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     await this.accountRepo.delete(id, user.id);
     return { message: 'Account deleted successfully' };
   }

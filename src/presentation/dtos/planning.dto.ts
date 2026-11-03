@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { IsOptionalField, ToNumber } from './validation.decorators';
 import {
   IsBoolean,
   IsDateString,
@@ -14,31 +14,31 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-export class PeriodDto {
-  @Type(() => Number) @IsInt() @Min(1) @Max(12) month: number;
-  @Type(() => Number) @IsInt() @Min(1900) @Max(9998) year: number;
-  @IsOptional() @IsUUID() accountId?: string;
+export class BudgetPeriodDto {
+  @ToNumber() @IsInt() @Min(1) @Max(12) month: number;
+  @ToNumber() @IsInt() @Min(1900) @Max(9998) year: number;
+}
+export class PeriodDto extends BudgetPeriodDto {
+  @IsOptionalField() @IsUUID() accountId?: string;
 }
 export class PageDto {
-  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100000) skip: number =
-    0;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) take: number =
-    30;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(0) @Max(100000) skip: number = 0;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(1) @Max(100) take: number = 30;
 }
 export class TransferDto {
   @IsUUID() fromAccountId: string;
   @IsUUID() toAccountId: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
   amount: number;
-  @IsDateString() @Matches(/^\d{4}-\d{2}-\d{2}$/) date: string;
-  @IsOptional() @IsString() @MaxLength(100) title?: string;
+  @IsDateString({ strict: true }) @Matches(/^\d{4}-\d{2}-\d{2}$/) date: string;
+  @IsOptionalField() @IsString() @MaxLength(100) title?: string;
 }
-export class BudgetDto extends PeriodDto {
+export class BudgetDto extends BudgetPeriodDto {
   @IsUUID() categoryId: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
@@ -46,7 +46,7 @@ export class BudgetDto extends PeriodDto {
 }
 export class RecurrenceDto {
   @IsString() @IsNotEmpty() @MaxLength(100) title: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
@@ -58,23 +58,31 @@ export class RecurrenceDto {
     | 'WEEKLY'
     | 'MONTHLY'
     | 'YEARLY';
-  @IsDateString() @Matches(/^\d{4}-\d{2}-\d{2}$/) startDate: string;
-  @IsOptional() @IsDateString() @Matches(/^\d{4}-\d{2}-\d{2}$/) endDate?:
-    | string
-    | null;
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDate: string;
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  endDate?: string | null;
 }
 export class EditRecurrenceDto {
-  @IsDateString() @Matches(/^\d{4}-\d{2}-\d{2}$/) effectiveDate: string;
-  @IsOptional() @IsBoolean() active?: boolean;
-  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) title?: string;
-  @IsOptional()
-  @Type(() => Number)
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveDate: string;
+  @IsOptionalField() @IsBoolean() active?: boolean;
+  @IsOptionalField() @IsString() @IsNotEmpty() @MaxLength(100) title?: string;
+  @IsOptionalField()
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
   amount?: number;
-  @IsOptional() @IsIn(['INCOME', 'EXPENSE']) type?: 'INCOME' | 'EXPENSE';
-  @IsOptional() @IsUUID() accountId?: string;
-  @IsOptional() @IsUUID() categoryId?: string;
-  @IsOptional() @IsDateString() endDate?: string | null;
+  @IsOptionalField() @IsIn(['INCOME', 'EXPENSE']) type?: 'INCOME' | 'EXPENSE';
+  @IsOptionalField() @IsUUID() accountId?: string;
+  @IsOptionalField() @IsUUID() categoryId?: string;
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  endDate?: string | null;
 }

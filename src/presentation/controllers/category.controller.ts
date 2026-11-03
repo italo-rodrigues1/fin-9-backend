@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+  Inject,
+} from '@nestjs/common';
 import { JwtAuthGuard, CurrentUser } from '../../infrastructure/auth';
 import { CATEGORY_REPOSITORY } from '../../domain/repositories';
 import type { CategoryRepository } from '../../domain/repositories';
@@ -9,7 +20,8 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 @UseGuards(JwtAuthGuard)
 export class CategoryController {
   constructor(
-    @Inject(CATEGORY_REPOSITORY) private readonly categoryRepo: CategoryRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categoryRepo: CategoryRepository,
   ) {}
 
   @Get()
@@ -18,8 +30,14 @@ export class CategoryController {
   }
 
   @Post()
-  async create(@CurrentUser() user: { id: string }, @Body() dto: CreateCategoryDto) {
-    const existing = await this.categoryRepo.findByNameAndUser(dto.name, user.id);
+  async create(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateCategoryDto,
+  ) {
+    const existing = await this.categoryRepo.findByNameAndUser(
+      dto.name,
+      user.id,
+    );
     if (existing) {
       throw new ConflictException('Category with this name already exists');
     }
@@ -36,7 +54,7 @@ export class CategoryController {
   @Patch(':id')
   async update(
     @CurrentUser() user: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCategoryDto,
   ) {
     const category = await this.categoryRepo.findById(id, user.id);
@@ -45,7 +63,10 @@ export class CategoryController {
     }
 
     if (dto.name && dto.name !== category.name) {
-      const duplicate = await this.categoryRepo.findByNameAndUser(dto.name, user.id);
+      const duplicate = await this.categoryRepo.findByNameAndUser(
+        dto.name,
+        user.id,
+      );
       if (duplicate) {
         throw new ConflictException('Category with this name already exists');
       }
@@ -55,7 +76,10 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+  async remove(
+    @CurrentUser() user: { id: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const category = await this.categoryRepo.findById(id, user.id);
     if (!category) {
       throw new NotFoundException('Category not found');

@@ -7,7 +7,7 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -16,15 +16,20 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
   it('/health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
       .expect('Cache-Control', 'no-store')
       .expect((response) => {
-        expect(response.body.status).toBe('ok');
-        expect(typeof response.body.timestamp).toBe('string');
-        expect(new Date(response.body.timestamp).toString()).not.toBe('Invalid Date');
+        const body = response.body as { status: string; timestamp: string };
+        expect(body.status).toBe('ok');
+        expect(typeof body.timestamp).toBe('string');
+        expect(new Date(body.timestamp).toString()).not.toBe('Invalid Date');
       });
   });
 });

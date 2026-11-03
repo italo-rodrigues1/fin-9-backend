@@ -9,6 +9,11 @@ import { UserRepository } from '../../domain/repositories';
 import type { GoogleIdentity } from '../../domain/repositories/user.repository';
 import { User } from '../../domain/entities';
 import { DEFAULT_CATEGORIES } from './prisma-category.repository';
+import { randomUUID } from 'node:crypto';
+import {
+  withAuthContext,
+  withDatabaseUser,
+} from '../database/database-context';
 
 const USER_SELECT = {
   id: true,
@@ -31,19 +36,33 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      select: USER_SELECT,
-    });
+    const user = await withAuthContext({ email }, () =>
+      this.prisma.user.findUnique({
+        where: { email },
+        select: USER_SELECT,
+      }),
+    );
     return user ? new User(user) : null;
   }
 
   async findByEmailWithHash(email: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await withAuthContext({ email }, () =>
+      this.prisma.user.findUnique({
+        where: { email },
+        select: { ...USER_SELECT, passwordHash: true },
+      }),
+    );
     return user ? new User(user) : null;
   }
 
   async findOrCreateGoogleUser(identity: GoogleIdentity): Promise<User> {
+    return withAuthContext(
+      { email: identity.email, subject: identity.subject },
+      () => this.persistGoogleUser(identity),
+    );
+  }
+
+  private async persistGoogleUser(identity: GoogleIdentity): Promise<User> {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         return await this.prisma.$transaction(
@@ -76,6 +95,7 @@ export class PrismaUserRepository implements UserRepository {
               }
               // A conditional write also prevents replacing a link established by
               // a concurrent sign-in. Serializable conflicts are retried below.
+              await tx.$queryRaw`SELECT set_config('app.user_id', ${existing.id}, true)`;
               const updated = await tx.user.updateMany({
                 where: { id: existing.id, googleSubject: null },
                 data: { googleSubject: identity.subject },
@@ -94,8 +114,11 @@ export class PrismaUserRepository implements UserRepository {
               });
             }
 
+            const id = randomUUID();
+            await tx.$queryRaw`SELECT set_config('app.user_id', ${id}, true)`;
             const created = await tx.user.create({
               data: {
+                id,
                 name: identity.name,
                 email: identity.email,
                 googleSubject: identity.subject,
@@ -136,10 +159,13 @@ export class PrismaUserRepository implements UserRepository {
     email: string;
     passwordHash: string;
   }): Promise<User> {
-    const user = await this.prisma.user.create({
-      data,
-      select: USER_SELECT,
-    });
+    const id = randomUUID();
+    const user = await withDatabaseUser(id, () =>
+      this.prisma.user.create({
+        data: { ...data, id },
+        select: USER_SELECT,
+      }),
+    );
     return new User(user);
   }
 

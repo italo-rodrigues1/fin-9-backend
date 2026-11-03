@@ -38,7 +38,9 @@ describe('DTO Validation — @MaxLength and @IsIn', () => {
 
   describe('FilterTransactionDto', () => {
     it('rejects orderBy with invalid value "__proto__"', async () => {
-      const dto = plainToInstance(FilterTransactionDto, { orderBy: '__proto__' });
+      const dto = plainToInstance(FilterTransactionDto, {
+        orderBy: '__proto__',
+      });
       const errors = await validate(dto);
       const orderByErrors = errors.find((e) => e.property === 'orderBy');
       expect(orderByErrors).toBeDefined();
@@ -46,7 +48,9 @@ describe('DTO Validation — @MaxLength and @IsIn', () => {
     });
 
     it('rejects orderDir with invalid value "invalid"', async () => {
-      const dto = plainToInstance(FilterTransactionDto, { orderDir: 'invalid' });
+      const dto = plainToInstance(FilterTransactionDto, {
+        orderDir: 'invalid',
+      });
       const errors = await validate(dto);
       const orderDirErrors = errors.find((e) => e.property === 'orderDir');
       expect(orderDirErrors).toBeDefined();

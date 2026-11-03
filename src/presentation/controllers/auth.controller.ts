@@ -23,7 +23,7 @@ import {
   CATEGORY_REPOSITORY,
   USER_REPOSITORY,
 } from '../../domain/repositories';
-import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
+import { CurrentUser, JwtAuthGuard, Public } from '../../infrastructure/auth';
 import {
   GoogleLoginDto,
   LoginDto,
@@ -42,6 +42,7 @@ export class AuthController {
     private readonly googleIdentity: GoogleIdentityService,
   ) {}
 
+  @Public()
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async register(@Body() dto: RegisterDto) {
@@ -68,6 +69,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
@@ -90,6 +92,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Post('google')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)

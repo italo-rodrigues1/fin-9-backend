@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CategoryRepository } from '../../domain/repositories';
 import { Category } from '../../domain/entities';
+import { withDatabaseUser } from '../database/database-context';
 
 export const DEFAULT_CATEGORIES = [
   { name: 'Alimentação', color: '#ef4444', icon: 'utensils' },
@@ -72,12 +73,14 @@ export class PrismaCategoryRepository implements CategoryRepository {
   }
 
   async createDefaultCategories(userId: string): Promise<void> {
-    await this.prisma.category.createMany({
-      data: DEFAULT_CATEGORIES.map((c) => ({
-        ...c,
-        isDefault: true,
-        userId,
-      })),
-    });
+    await withDatabaseUser(userId, () =>
+      this.prisma.category.createMany({
+        data: DEFAULT_CATEGORIES.map((c) => ({
+          ...c,
+          isDefault: true,
+          userId,
+        })),
+      }),
+    );
   }
 }

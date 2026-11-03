@@ -5,20 +5,16 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
+import { setupApiDocumentation } from './presentation/documentation/api-documentation';
+import { corsOptions } from './presentation/http.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
   app.use(helmet());
 
-  // API consumed by native mobile app (no browser Origin header).
-  // origin: true reflects the request Origin back, which is equivalent to '*'
-  // but compatible with credentials: true. Safe because CORS only affects browsers.
-  app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
+  app.enableCors(corsOptions(configService.get<string>('ALLOWED_ORIGINS')));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,7 +26,6 @@ async function bootstrap() {
 
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3333);
 
   const jwtSecret = configService.get<string>('JWT_SECRET');
@@ -40,8 +35,10 @@ async function bootstrap() {
     );
   }
 
+  setupApiDocumentation(app);
+
   await app.listen(port);
   console.log(`🚀 Server running on http://localhost:${port}`);
 }
 
-bootstrap();
+void bootstrap();

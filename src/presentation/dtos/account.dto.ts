@@ -1,15 +1,14 @@
+import { IsOptionalField, ToNumber } from './validation.decorators';
 import {
   IsBoolean,
   IsNotEmpty,
   IsHexColor,
   IsNumber,
-  IsOptional,
   IsString,
   Max,
   MaxLength,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
   @IsString()
@@ -24,44 +23,40 @@ export class CreateAccountDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(999_999_999.99, { message: 'Saldo máximo excedido' })
-  @Type(() => Number)
+  @ToNumber()
   balance: number;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsHexColor()
   color?: string;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsString()
+  @MaxLength(100)
   icon?: string;
 }
 
 export class UpdateAccountDto {
-  @IsOptional()
+  @IsOptionalField()
   @IsBoolean()
   isArchived?: boolean;
-  @IsOptional()
+  @IsOptionalField()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   name?: string;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsString()
   @MaxLength(100)
   institution?: string;
 
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(999_999_999.99, { message: 'Saldo máximo excedido' })
-  @Type(() => Number)
-  balance?: number;
-
-  @IsOptional()
+  @IsOptionalField()
   @IsHexColor()
   color?: string;
 
-  @IsOptional()
+  @IsOptionalField()
   @IsString()
+  @MaxLength(100)
   icon?: string;
 }

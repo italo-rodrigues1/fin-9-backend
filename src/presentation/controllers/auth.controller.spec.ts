@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import request from 'supertest';
+import type { Server } from 'node:http';
 
 import { AuthController } from './auth.controller';
 import { GoogleIdentityService } from '../../infrastructure/auth/google-identity.service';
@@ -81,7 +82,7 @@ describe('AuthController — email domain acceptance', () => {
     async (email) => {
       const payload = { name: 'Test User', email, password: 'Password1' };
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/register')
         .send(payload);
 
@@ -97,7 +98,7 @@ describe('AuthController — email domain acceptance', () => {
       password: 'Password1',
     };
 
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .post('/auth/register')
       .send(payload);
 
@@ -164,14 +165,14 @@ describe('AuthController — rate limiting', () => {
 
     // First 5 requests should be processed (401 — invalid credentials, not rate limited)
     for (let i = 0; i < 5; i++) {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as Server)
         .post('/auth/login')
         .send(payload);
       expect(res.status).toBe(401);
     }
 
     // 6th request must be rate limited
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as Server)
       .post('/auth/login')
       .send(payload);
     expect(res.status).toBe(429);

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -13,9 +14,9 @@ import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
 import { PlanningService } from '../../application/planning.service';
 import {
   BudgetDto,
+  BudgetPeriodDto,
   EditRecurrenceDto,
   PageDto,
-  PeriodDto,
   RecurrenceDto,
   TransferDto,
 } from '../dtos/planning.dto';
@@ -25,14 +26,14 @@ export class PlanningController {
   constructor(private readonly service: PlanningService) {}
   @Get('accounts/:id/statement') statement(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query() page: PageDto,
   ) {
     return this.service.statement(u.id, id, page);
   }
   @Get('transfers/:id') getTransfer(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.getTransfer(u.id, id);
   }
@@ -47,20 +48,20 @@ export class PlanningController {
   }
   @Patch('transfers/:id') editTransfer(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() data: TransferDto,
   ) {
     return this.service.transfer(u.id, data, id);
   }
   @Delete('transfers/:id') deleteTransfer(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.deleteTransfer(u.id, id);
   }
   @Get('budgets') budgets(
     @CurrentUser() u: { id: string },
-    @Query() period: PeriodDto,
+    @Query() period: BudgetPeriodDto,
   ) {
     return this.service.budgets(u.id, period);
   }
@@ -72,7 +73,7 @@ export class PlanningController {
   }
   @Delete('budgets/:id') deleteBudget(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.deleteBudget(u.id, id);
   }
@@ -87,7 +88,7 @@ export class PlanningController {
   }
   @Patch('recurrences/:id') editRecurrence(
     @CurrentUser() u: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() data: EditRecurrenceDto,
   ) {
     return this.service.editRecurrence(u.id, id, data);

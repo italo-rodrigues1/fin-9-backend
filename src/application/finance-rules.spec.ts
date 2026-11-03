@@ -44,7 +44,7 @@ describe('Serializable transaction retries', () => {
           .mockRejectedValueOnce(conflict)
           .mockResolvedValue(42),
       };
-    expect(await serializable(db, async () => 42)).toBe(42);
+    expect(await serializable(db, () => Promise.resolve(42))).toBe(42);
     expect(db.$transaction).toHaveBeenCalledTimes(2);
   });
   it('caps retries at three attempts', async () => {
@@ -52,7 +52,9 @@ describe('Serializable transaction retries', () => {
         cause: { kind: 'TransactionWriteConflict', originalCode: '40001' },
       }),
       db = { $transaction: jest.fn().mockRejectedValue(conflict) };
-    await expect(serializable(db, async () => 0)).rejects.toBe(conflict);
+    await expect(serializable(db, () => Promise.resolve(0))).rejects.toBe(
+      conflict,
+    );
     expect(db.$transaction).toHaveBeenCalledTimes(3);
   });
 });

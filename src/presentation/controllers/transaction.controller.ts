@@ -7,6 +7,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -45,6 +46,9 @@ export class TransactionController {
     @CurrentUser() user: { id: string },
     @Query() filters: FilterTransactionDto,
   ) {
+    if (filters.month !== undefined && filters.year === undefined) {
+      throw new BadRequestException('Informe o ano ao filtrar por mês');
+    }
     if (
       filters.startDate &&
       filters.endDate &&
@@ -59,7 +63,10 @@ export class TransactionController {
   }
 
   @Get(':id')
-  async findOne(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+  async findOne(
+    @CurrentUser() user: { id: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const tx = await this.txRepo.findById(id, user.id);
     if (!tx) {
       throw new NotFoundException('Transaction not found');
@@ -100,7 +107,7 @@ export class TransactionController {
   @Patch(':id')
   async update(
     @CurrentUser() user: { id: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTransactionDto,
   ) {
     const existing = await this.txRepo.findById(id, user.id);
@@ -141,7 +148,10 @@ export class TransactionController {
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+  async remove(
+    @CurrentUser() user: { id: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const existing = await this.txRepo.findById(id, user.id);
     if (!existing) {
       throw new NotFoundException('Transaction not found');

@@ -1,4 +1,5 @@
-import { Transform, Type } from 'class-transformer';
+import { IsOptionalField, ToNumber } from './validation.decorators';
+import { Transform } from 'class-transformer';
 import { CardBrand } from '../../generated/client/enums';
 import {
   IsBoolean,
@@ -26,14 +27,14 @@ export class SaveCardDto {
   @IsOptional()
   @IsEnum(CardBrand, { message: 'Selecione uma bandeira válida.' })
   brand?: CardBrand | null;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
   creditLimit: number;
-  @Type(() => Number) @IsInt() @Min(1) @Max(31) closingDay: number;
-  @Type(() => Number) @IsInt() @Min(1) @Max(31) dueDay: number;
-  @IsOptional() @IsBoolean() isArchived?: boolean;
+  @ToNumber() @IsInt() @Min(1) @Max(31) closingDay: number;
+  @ToNumber() @IsInt() @Min(1) @Max(31) dueDay: number;
+  @IsOptionalField() @IsBoolean() isArchived?: boolean;
 }
 export class SaveCardPurchaseDto {
   @Transform(({ value }: { value: unknown }) =>
@@ -44,14 +45,17 @@ export class SaveCardPurchaseDto {
   @MaxLength(100)
   title: string;
   @IsUUID() categoryId: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
   amount: number;
   @IsDateString({ strict: true }) @Matches(/^\d{4}-\d{2}-\d{2}$/) date: string;
-  @Type(() => Number) @IsInt() @Min(1) @Max(36) installmentCount: number;
-  @IsOptional() @IsString() @Matches(/^[a-zA-Z0-9-]{8,80}$/) requestId?: string;
+  @ToNumber() @IsInt() @Min(1) @Max(36) installmentCount: number;
+  @IsOptionalField()
+  @IsString()
+  @Matches(/^[a-zA-Z0-9-]{8,80}$/)
+  requestId?: string;
 }
 export class PayCardInvoiceDto {
   @IsUUID() accountId: string;

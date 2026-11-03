@@ -10,6 +10,14 @@ const mockPrismaUser = {
   updatedAt: new Date('2024-01-01'),
 };
 
+const userWithoutHash = {
+  id: mockPrismaUser.id,
+  name: mockPrismaUser.name,
+  email: mockPrismaUser.email,
+  createdAt: mockPrismaUser.createdAt,
+  updatedAt: mockPrismaUser.updatedAt,
+};
+
 const mockPrismaService = {
   user: {
     findUnique: jest.fn(),
@@ -24,12 +32,11 @@ describe('PrismaUserRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    repository = new PrismaUserRepository(mockPrismaService as any);
+    repository = new PrismaUserRepository(mockPrismaService as never);
   });
 
   describe('findById', () => {
     it('should return User without passwordHash', async () => {
-      const { passwordHash: _, ...userWithoutHash } = mockPrismaUser;
       mockPrismaService.user.findUnique.mockResolvedValue(userWithoutHash);
 
       const result = await repository.findById('user-1');
@@ -66,7 +73,6 @@ describe('PrismaUserRepository', () => {
 
   describe('findByEmail', () => {
     it('should return User without passwordHash', async () => {
-      const { passwordHash: _, ...userWithoutHash } = mockPrismaUser;
       mockPrismaService.user.findUnique.mockResolvedValue(userWithoutHash);
 
       const result = await repository.findByEmail('test@example.com');
@@ -111,20 +117,27 @@ describe('PrismaUserRepository', () => {
       expect(result!.passwordHash).toBe('hashed-password');
     });
 
-    it('should NOT pass select to Prisma (fetches all fields)', async () => {
+    it('selects only the login profile and password hash', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       await repository.findByEmailWithHash('test@example.com');
 
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { email: 'test@example.com' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+          passwordHash: true,
+        },
       });
     });
   });
 
   describe('create', () => {
     it('should return User without passwordHash', async () => {
-      const { passwordHash: _, ...userWithoutHash } = mockPrismaUser;
       mockPrismaService.user.create.mockResolvedValue(userWithoutHash);
 
       const result = await repository.create({
@@ -140,7 +153,6 @@ describe('PrismaUserRepository', () => {
 
   describe('update', () => {
     it('should return User without passwordHash', async () => {
-      const { passwordHash: _, ...userWithoutHash } = mockPrismaUser;
       mockPrismaService.user.update.mockResolvedValue(userWithoutHash);
 
       const result = await repository.update('user-1', { name: 'New Name' });

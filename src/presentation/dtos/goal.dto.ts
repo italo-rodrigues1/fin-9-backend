@@ -1,4 +1,5 @@
-import { Transform, Type } from 'class-transformer';
+import { IsOptionalField, ToNumber } from './validation.decorators';
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsInt,
@@ -20,7 +21,7 @@ export class SaveGoalDto {
   @IsNotEmpty()
   @MaxLength(100)
   name: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
@@ -32,18 +33,19 @@ export class SaveGoalDto {
 }
 export class SaveGoalContributionDto {
   @IsUUID() accountId: string;
-  @Type(() => Number)
+  @ToNumber()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(999999999.99)
   amount: number;
   @IsDateString({ strict: true }) @Matches(/^\d{4}-\d{2}-\d{2}$/) date: string;
-  @IsOptional() @IsString() @MaxLength(200) note?: string;
-  @IsOptional() @IsString() @Matches(/^[a-zA-Z0-9-]{8,80}$/) requestId?: string;
+  @IsOptionalField() @IsString() @MaxLength(200) note?: string;
+  @IsOptionalField()
+  @IsString()
+  @Matches(/^[a-zA-Z0-9-]{8,80}$/)
+  requestId?: string;
 }
 export class GoalPageDto {
-  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100000) skip: number =
-    0;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) take: number =
-    30;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(0) @Max(100000) skip: number = 0;
+  @IsOptionalField() @ToNumber() @IsInt() @Min(1) @Max(100) take: number = 30;
 }
