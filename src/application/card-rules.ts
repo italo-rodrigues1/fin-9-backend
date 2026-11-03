@@ -1,6 +1,6 @@
 import { businessDay } from './business-day';
 import { BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 export const currentDay = businessDay;
 export function calendarDay(year: number, month: number, day: number) {
   return new Date(

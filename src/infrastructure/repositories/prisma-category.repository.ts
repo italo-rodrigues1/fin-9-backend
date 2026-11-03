@@ -3,7 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CategoryRepository } from '../../domain/repositories';
 import { Category } from '../../domain/entities';
 
-const DEFAULT_CATEGORIES = [
+export const DEFAULT_CATEGORIES = [
   { name: 'Alimentação', color: '#ef4444', icon: 'utensils' },
   { name: 'Transporte', color: '#3b82f6', icon: 'car' },
   { name: 'Moradia', color: '#8b5cf6', icon: 'home' },
@@ -34,19 +34,32 @@ export class PrismaCategoryRepository implements CategoryRepository {
     return categories.map((c) => new Category(c));
   }
 
-  async findByNameAndUser(name: string, userId: string): Promise<Category | null> {
+  async findByNameAndUser(
+    name: string,
+    userId: string,
+  ): Promise<Category | null> {
     const category = await this.prisma.category.findFirst({
       where: { name, userId },
     });
     return category ? new Category(category) : null;
   }
 
-  async create(data: { name: string; color: string; icon: string; isDefault: boolean; userId: string }): Promise<Category> {
+  async create(data: {
+    name: string;
+    color: string;
+    icon: string;
+    isDefault: boolean;
+    userId: string;
+  }): Promise<Category> {
     const category = await this.prisma.category.create({ data });
     return new Category(category);
   }
 
-  async update(id: string, userId: string, data: Partial<Pick<Category, 'name' | 'color' | 'icon'>>): Promise<Category> {
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<Pick<Category, 'name' | 'color' | 'icon'>>,
+  ): Promise<Category> {
     const category = await this.prisma.category.update({
       where: { id, userId },
       data,

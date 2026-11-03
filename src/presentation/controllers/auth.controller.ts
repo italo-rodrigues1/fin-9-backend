@@ -24,7 +24,13 @@ import {
   USER_REPOSITORY,
 } from '../../domain/repositories';
 import { CurrentUser, JwtAuthGuard } from '../../infrastructure/auth';
-import { LoginDto, RegisterDto, UpdateProfileDto } from '../dtos';
+import {
+  GoogleLoginDto,
+  LoginDto,
+  RegisterDto,
+  UpdateProfileDto,
+} from '../dtos';
+import { GoogleIdentityService } from '../../infrastructure/auth/google-identity.service';
 
 @Controller('auth')
 export class AuthController {
@@ -33,7 +39,8 @@ export class AuthController {
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepo: CategoryRepository,
     private readonly jwtService: JwtService,
-  ) { }
+    private readonly googleIdentity: GoogleIdentityService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -66,7 +73,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
     const user = await this.userRepo.findByEmailWithHash(dto.email);
-    if (!user) {
+    if (!user?.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -77,6 +84,19 @@ export class AuthController {
 
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
 
+    return {
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+    };
+  }
+
+  @Post('google')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  async google(@Body() dto: GoogleLoginDto) {
+    const identity = await this.googleIdentity.verify(dto.idToken);
+    const user = await this.userRepo.findOrCreateGoogleUser(identity);
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
     return {
       user: { id: user.id, name: user.name, email: user.email },
       token,

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 import { cardSchedule } from './card-rules';
 const schedule = (
   date: string,

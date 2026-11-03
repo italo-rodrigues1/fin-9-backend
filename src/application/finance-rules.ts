@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 export function recurrenceDate(
   anchor: Date,
   interval: 'WEEKLY' | 'MONTHLY' | 'YEARLY',

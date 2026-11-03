@@ -2,7 +2,7 @@ export class User {
   id: string;
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
   createdAt: Date;
   updatedAt: Date;
 

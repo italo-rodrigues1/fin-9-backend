@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { serializable } from '../../application/finance-rules';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/client/client';
 import { Account } from '../../domain/entities';
 import { AccountRepository } from '../../domain/repositories';
 import { PrismaService } from '../database/prisma.service';

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { serializable } from '../../application/finance-rules';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/client/client';
 import { Transaction, TransactionType } from '../../domain/entities';
 import {
   MonthlySummary,

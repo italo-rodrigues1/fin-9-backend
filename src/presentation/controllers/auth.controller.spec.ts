@@ -6,6 +6,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import request from 'supertest';
 
 import { AuthController } from './auth.controller';
+import { GoogleIdentityService } from '../../infrastructure/auth/google-identity.service';
 import {
   CATEGORY_REPOSITORY,
   USER_REPOSITORY,
@@ -43,6 +44,7 @@ describe('AuthController — email domain acceptance', () => {
       providers: [
         { provide: USER_REPOSITORY, useValue: mockUserRepo },
         { provide: CATEGORY_REPOSITORY, useValue: mockCategoryRepo },
+        { provide: GoogleIdentityService, useValue: { verify: jest.fn() } },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
       ],
     }).compile();
@@ -135,6 +137,7 @@ describe('AuthController — rate limiting', () => {
       providers: [
         { provide: USER_REPOSITORY, useValue: mockUserRepo },
         { provide: CATEGORY_REPOSITORY, useValue: mockCategoryRepo },
+        { provide: GoogleIdentityService, useValue: { verify: jest.fn() } },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
       ],
     }).compile();

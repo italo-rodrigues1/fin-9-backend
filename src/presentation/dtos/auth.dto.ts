@@ -37,6 +37,13 @@ export class LoginDto {
   password: string;
 }
 
+export class GoogleLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8192)
+  idToken: string;
+}
+
 export class UpdateProfileDto {
   @IsString()
   @IsNotEmpty()

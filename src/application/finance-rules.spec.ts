@@ -4,7 +4,7 @@ import {
   budgetProgress,
   progressPercentage,
 } from './finance-rules';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 describe('Serializable transaction retries', () => {
   it('recognizes Prisma and PostgreSQL adapter commit conflicts', () => {
     expect(

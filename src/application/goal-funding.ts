@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 type Account = { id: string; balance: Prisma.Decimal };
 type Allocation = { goalId: string; accountId: string; amount: Prisma.Decimal };
 /** Allocations reference existing cash. Floor each account/goal share so shortfalls never invent cents. */

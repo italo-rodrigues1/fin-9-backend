@@ -1,9 +1,17 @@
 import { User } from '../entities';
 
+export interface GoogleIdentity {
+  subject: string;
+  email: string;
+  name: string;
+  emailAuthoritative: boolean;
+}
+
 export interface UserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByEmailWithHash(email: string): Promise<User | null>;
+  findOrCreateGoogleUser(identity: GoogleIdentity): Promise<User>;
   create(data: {
     name: string;
     email: string;

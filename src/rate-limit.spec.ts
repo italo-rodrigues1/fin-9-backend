@@ -11,6 +11,7 @@ import { TransactionController } from './presentation/controllers/transaction.co
 import { AuthController } from './presentation/controllers/auth.controller';
 import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
 import { JwtAuthGuard } from './infrastructure/auth';
+import { GoogleIdentityService } from './infrastructure/auth/google-identity.service';
 import {
   ACCOUNT_REPOSITORY,
   CATEGORY_REPOSITORY,
@@ -28,6 +29,7 @@ describe('Mobile navigation rate limits', () => {
       ],
       controllers: [AccountController, TransactionController, AuthController],
       providers: [
+        { provide: GoogleIdentityService, useValue: { verify: jest.fn() } },
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         {
           provide: ACCOUNT_REPOSITORY,

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/client/client';
 import { PrismaTransactionRepository } from './prisma-transaction.repository';
 import { PrismaService } from '../database/prisma.service';
 import { TransactionType } from '../../domain/entities';

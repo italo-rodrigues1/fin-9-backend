@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/client/client';
 
 function getDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
@@ -29,10 +29,6 @@ function describeDatabaseTarget(databaseUrl: string): string {
   }
 }
 
-function shouldUsePgAdapter(): boolean {
-  return process.env.PRISMA_USE_PG_ADAPTER !== 'false';
-}
-
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -40,34 +36,26 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
   private readonly connectionTarget: string;
-  private readonly pgAdapterEnabled: boolean;
 
   constructor() {
     const connectionString = getDatabaseUrl();
-    const pgAdapterEnabled = shouldUsePgAdapter();
-
-    if (pgAdapterEnabled) {
-      const adapter = new PrismaPg({ connectionString });
-      super({ adapter });
-    } else {
-      super();
-    }
+    const adapter = new PrismaPg({ connectionString });
+    super({ adapter });
 
     this.connectionTarget = describeDatabaseTarget(connectionString);
-    this.pgAdapterEnabled = pgAdapterEnabled;
   }
 
   async onModuleInit() {
     try {
       await this.$connect();
       this.logger.log(
-        `Connected to ${this.connectionTarget} using ${this.pgAdapterEnabled ? '@prisma/adapter-pg' : 'Prisma engine'}`,
+        `Connected to ${this.connectionTarget} using @prisma/adapter-pg`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
       this.logger.error(
-        `Failed to connect to ${this.connectionTarget} using ${this.pgAdapterEnabled ? '@prisma/adapter-pg' : 'Prisma engine'}`,
+        `Failed to connect to ${this.connectionTarget} using @prisma/adapter-pg`,
       );
 
       if (message.includes('ENETUNREACH')) {
@@ -75,7 +63,7 @@ export class PrismaService
           'Network unreachable while opening the PostgreSQL socket. If this only happens on Render, verify whether DATABASE_URL resolves to an IPv6 address there and prefer an IPv4-compatible or pooler connection string.',
         );
         this.logger.error(
-          'For Supabase, try the Supavisor pooler URL with sslmode=require. You can also set PRISMA_USE_PG_ADAPTER=false to test the default Prisma engine against the same DATABASE_URL.',
+          'For Supabase, try the Supavisor pooler URL with sslmode=require.',
         );
       }
 

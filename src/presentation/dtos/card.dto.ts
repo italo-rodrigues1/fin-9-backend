@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { CardBrand } from '@prisma/client';
+import { CardBrand } from '../../generated/client/enums';
 import {
   IsBoolean,
   IsEnum,

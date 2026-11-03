@@ -6,12 +6,15 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prebuild": "npm run prisma:generate",
+    "pretest": "npm run prisma:generate",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -22,7 +25,8 @@
     "test:p2": "npm run build && node --test test/p2.integration.cjs",
     "test:p3": "npm run build && node --test test/p3.integration.cjs",
     "test:accounts": "npm run build && node --test test/account-removal.integration.cjs",
-    "test:finance": "npm run build && node --test --test-concurrency=1 test/p1.integration.cjs test/p2.integration.cjs test/p3.integration.cjs test/account-removal.integration.cjs"
+    "test:finance": "npm run build && node --test --test-concurrency=1 test/p1.integration.cjs test/p2.integration.cjs test/p3.integration.cjs test/account-removal.integration.cjs",
+    "test:google": "npm run build && node --test test/google-auth.integration.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -38,6 +42,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.3.1",
+    "google-auth-library": "^11.3.2",
     "helmet": "^8.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

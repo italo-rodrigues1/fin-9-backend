@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client/client';
 import { goalFunding } from './goal-funding';
 const d = (v: number | string) => new Prisma.Decimal(v);
 describe('Cash backing of savings goals', () => {

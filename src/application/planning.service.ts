@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, type Recurrence } from '@prisma/client';
+import { Prisma, type Recurrence } from '../generated/client/client';
 import { PrismaService } from '../infrastructure/database/prisma.service';
 import { PrismaTransactionRepository } from '../infrastructure/repositories/prisma-transaction.repository';
 import {
